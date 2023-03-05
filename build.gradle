@@ -1,0 +1,369 @@
+import java.nio.file.*
+import org.gradle.util.VersionNumber
+//import java.util.jar.Pack200
+import java.util.zip.GZIPOutputStream
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
+buildscript {
+    repositories {
+        flatDir {
+            dirs "lib"
+        }
+    }
+    dependencies {
+    	if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
+            classpath "cz.kubacki.gradle.plugins:gradle-nbm-plugin:1.18.0-dev.39.uncommitted+develop.f9fd71d"
+    	} else {
+            classpath "cz.kubacki.gradle.plugins:gradle-nbm-plugin:1.17.1-dev.6.uncommitted+3041178"
+    	}
+        gradleApi()
+    }
+}
+
+['java', 'maven-publish', 'signing', 'cz.kubacki.nbm'].each {  
+    apply plugin: it
+}
+
+ext.scriptFile = { String fileName ->
+    return new File(new File(rootDir, 'gradle'), fileName)
+}
+
+version = '0.2.0-SNAPSHOT'
+group = 'org.exbin.bined.autopsy'
+
+sourceCompatibility = '1.8'
+targetCompatibility = sourceCompatibility
+
+ext {
+    //    netbeansVersion = 'dev-SNAPSHOT'
+    netbeansVersion = 'RELEASE90'
+    binedVersion = '0.2.1-SNAPSHOT'
+    pagedDataVersion = '0.2.1-SNAPSHOT'
+    repositoryName = "bined-autopsy-plugin"
+    nbmVersion = version.endsWith('-SNAPSHOT') ? version.substring(0, version.length() - 9) : version
+    homePageUrl = 'https://bined.exbin.org/autopsy-plugin'
+    deployUrl = 'https://bined.exbin.org/autopsy-plugin'
+    deployName = 'BinEd Autopsy Plugin'
+    deployDescription = 'Binary/Hexadecimal editor plugin for Autopsy platform'
+}
+
+//ext.packer = Pack200.newPacker()
+//packer.properties()["pack.effort"] = "9"
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://netbeans.apidesign.org/maven2' }
+    maven { url 'https://repo.gradle.org/gradle/libs-releases-local' }
+    flatDir {
+        dirs "lib"
+    }
+}
+
+// apply plugin: 'nb-gradle-nbm'
+// apply plugin: 'custom-java-compilers'
+// apply plugin: 'nb-gradle-maven-publish'
+// apply plugin: 'nbm-dependency-verifier'
+
+compileJava.options.sourcepath = sourceSets.main.resources.sourceDirectories
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+def configureExec(task) {
+    task.main = mainClass
+    task.classpath = sourceSets.main.runtimeClasspath
+    if (hasProperty('appArgs')) {
+        task.args appArgs
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    doFirst {
+        options.fork = true
+        if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+            if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
+                options.bootstrapClasspath = files("${System.properties['java.home']}/lib/rt.jar", "$File.pathSeparator${System.properties['java.home']}/jre/lib/jsse.jar")
+            } else {
+                options.bootClasspath = "${System.properties['java.home']}/lib/rt.jar"
+                options.bootClasspath += "$File.pathSeparator${System.properties['java.home']}/jre/lib/jsse.jar"
+            }
+        }
+    }
+}
+
+// Disable tests on build
+if (!gradle.startParameter.taskNames.any {it.endsWith("test")}) {
+    tasks.withType(Test) {enabled = false}
+}
+
+task testJar(type: Jar, dependsOn: testClasses) {
+    classifier "tests"
+    if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
+    	archiveBaseName = "test-${project.archivesBaseName}"
+    } else {
+    	archiveName = "test-${project.archivesBaseName}"
+    }
+    from sourceSets.test.output
+}
+
+compileTestJava.dependsOn(jar)
+
+//def manifestClassPath() {
+//    try {
+//        return (configurations.runtime.collect { 'lib/' + it.getName() }).join(' ')
+//    } catch (Exception) {
+//        return ""
+//    }
+//}
+//
+//jar {
+//    attributes(
+////        'Main-Class': mainClass,
+//        'Class-Path': manifestClassPath()
+//    )
+////    from sourceSets.modelBuilders.output
+////    ext {
+////        netBeansSourceSets = [sourceSets.main, sourceSets.modelBuilders]
+////    }
+//}
+
+configurations {
+    tests
+}
+
+javadoc {
+    if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
+        options.addBooleanOption('html5', true)
+    }
+}
+
+task javadocJar (type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+def tryGetProperty = { String name, String defaultValue ->
+    return defaultValue
+    //org.netbeans.gradle.build.PropertyUtils.getStringProperty(project, name, defaultValue)
+}
+
+jar.manifest {
+    attributes(['OpenIDE-Module-Layer': 'org/exbin/bined/autopsy/layer.xml'])
+}
+
+task nbmFile (type: Jar, dependsOn: tasks.nbm) {
+    classifier = 'nbm'
+//    from tasks.nbm.outputFile
+}
+
+def packGZ(File jarToPack) {
+    println jarToPack.getAbsolutePath()
+    def targetPath = project.buildDir.getAbsolutePath() + "/libs"
+    def name = jarToPack.getName()
+    def newName = name.substring(0, name.length() - 4) + ".jar.pack.gz"
+    def newFile = new File(targetPath, newName)
+    def os = new GZIPOutputStream(new FileOutputStream(newFile))
+    packer.pack new JarFile(jarToPack), os
+    os.close()
+    
+    def messageDigest = MessageDigest.getInstance("SHA1")
+    newFile.eachByte 1024 * 1024, { byte[] buf, int bytesRead ->
+        messageDigest.update(buf, 0, bytesRead);
+    }
+    def sha1Hex = new BigInteger(1, messageDigest.digest()).toString(16).padLeft(40, '0')
+    def shaName = name.substring(0, name.length() - 4) + ".jar.pack.gz.sha1"
+    def shaFile = new File(targetPath, shaName)
+    if (!shaFile.exists()) shaFile.createNewFile()
+    shaFile.append sha1Hex
+}
+
+task nbmPack (type: Jar, dependsOn: jar) {
+    dependsOn nbmFile
+    doLast {
+        jar.outputs.files.each { packGZ(it) }
+        from configurations.runtime.findAll { !configurations.providedCompile.contains(it) }.each { packGZ(it) }
+        //        packGZ(tasks.nbm.outputFile)
+    }
+}
+
+nbm {
+    moduleAuthor = 'ExBin Project'
+    licenseFile = 'LICENSE.txt'
+    homePage = project.ext.homePageUrl
+    moduleName = group
+    specificationVersion = project.ext.nbmVersion
+    implementationVersion = project.ext.nbmVersion
+    if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
+        // usePack200 = false
+    }
+    //    moduleInstall = 'org.netbeans.gradle.project.NbGradleModuleInstall'
+    localizingBundle = 'org/exbin/bined/autopsy/Bundle.properties'
+
+//    keyStore {
+//         keyStoreFile = project.file('private/keystore') //tryGetProperty('nbGradlePluginKeyStore', 'keystore')
+//         username = tryGetProperty('nbGradlePluginKeyStoreUser', 'bined')
+//         password = tryGetProperty('nbGradlePluginKeyStorePass', '')
+//    }
+}
+
+def netbeansModule = { String groupName, String moduleName ->
+    return [
+        group: groupName,
+        name: moduleName,
+        version: netbeansVersion
+    ]
+}
+
+def netbeansApi = { String moduleName ->
+    return netbeansModule('org.netbeans.api', moduleName)
+}
+
+def binedLibrary = { String libName ->
+    return ":${libName}-${binedVersion}"
+//    return "org.exbin.bined:${libName}:${binedVersion}"
+}
+
+def pagedDataLibrary = { String libName ->
+    return ":${libName}-${pagedDataVersion}"
+//    return "org.exbin.auxiliary:${libName}:${pagedDataVersion}"
+}
+
+dependencies {
+    compileOnly netbeansApi('org-netbeans-api-debugger')
+    compileOnly netbeansApi('org-netbeans-api-debugger-jpda')
+    compileOnly netbeansApi('org-netbeans-spi-debugger-ui')
+    compileOnly netbeansApi('org-netbeans-spi-debugger-jpda-ui')
+    compileOnly netbeansApi('org-netbeans-spi-viewmodel')
+    compileOnly netbeansModule('org.netbeans.modules', 'org-netbeans-modules-projectapi-nb')
+
+    compileOnly ':org-sleuthkit-autopsy-core'
+    compileOnly ':sleuthkit-4.12.0'
+
+    providedCompile netbeansApi('org-netbeans-api-annotations-common')
+    providedCompile netbeansApi('org-netbeans-core-multiview')
+    providedCompile netbeansApi('org-netbeans-modules-options-api')
+    providedCompile netbeansApi('org-netbeans-modules-queries')
+    providedCompile netbeansApi('org-netbeans-modules-settings')
+    providedCompile netbeansApi('org-openide-actions')
+    providedCompile netbeansApi('org-openide-awt')
+    providedCompile netbeansApi('org-openide-dialogs')
+    providedCompile netbeansApi('org-openide-filesystems')
+    providedCompile netbeansApi('org-openide-loaders')
+    providedCompile netbeansApi('org-openide-modules')
+    providedCompile netbeansApi('org-openide-nodes')
+    providedCompile netbeansApi('org-openide-util')
+    providedCompile netbeansApi('org-openide-util-lookup')
+    providedCompile netbeansApi('org-openide-util-ui')
+    providedCompile netbeansApi('org-openide-windows')
+
+    implementation binedLibrary("bined-core")
+    implementation binedLibrary("bined-extended")
+    implementation binedLibrary("bined-highlight-swing")
+    implementation binedLibrary("bined-operation")
+    implementation binedLibrary("bined-operation-swing")
+    implementation binedLibrary("bined-swing")
+    implementation binedLibrary("bined-swing-extended")
+    implementation pagedDataLibrary('paged_data')
+    implementation pagedDataLibrary('paged_data-delta')
+
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+
+    testImplementation 'junit:junit:4.12.2'
+
+    if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
+        // Workaround for @javax.annotation.Generated
+        // see: https://github.com/grpc/grpc-java/issues/3633
+        implementation("javax.annotation:javax.annotation-api:1.3.2")
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    duplicatesStrategy = 'exclude'
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+//uploadArchives.dependsOn tasks.nbm
+publish.dependsOn tasks.nbm
+artifacts {
+    archives jar
+    archives sourcesJar
+    tests testJar
+}
+
+task netBeansRun(type: Exec) {
+    doFirst {
+        def confFile = project.file("$project.buildDir/testuserdir/etc/netbeans.conf")
+        confFile.parentFile.mkdirs()
+        confFile.write "netbeans_extraclusters=\"$project.buildDir/module\""
+    }
+
+    workingDir "${project.buildDir}"
+
+    def executable = System.getProperty('os.name').toLowerCase().contains('windows') ? 'netbeans.exe' : 'netbeans'
+    if (project.hasProperty('netBeansInstallDir')) {
+        executable = netBeansInstallDir + '/bin/' + executable
+    } else {
+        logger.warn('netBeansInstallDir property is not specified. Assuming \'netbeans\' executable is on PATH.')
+    }
+    commandLine executable, '--userdir', "$project.buildDir/testuserdir"
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            artifact sourcesJar {
+                classifier 'sources'
+            }
+            artifact (javadocJar) {
+                classifier 'javadoc'
+            }
+            artifact (nbmFile) {
+                classifier 'nbm'
+                extension = 'nbm'
+            }
+
+            pom.withXml {
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+                    name deployName
+                    pom.packaging 'nbm'
+                    description deployDescription
+                    url deployUrl
+                    scm {
+                        url "https://github.com/exbin/${repositoryName}"
+                        connection "cm:git:git://github.com/exbin/${repositoryName}.git"
+                        developerConnection "scm:git:git@github.com:exbin/${repositoryName}.git"
+                    }
+                    licenses {
+                        license {
+                            name 'Apache License, Version 2.0'
+                            url 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution 'repo'
+                        }
+                    }
+                    organization {
+                        name 'ExBin Project'
+                        url 'https://exbin.org/'
+                    }
+                    developers {
+                        developer {
+                            id 'HajdaM'
+                            name 'Miroslav Hajda'
+                            email 'hajdam@users.sf.net'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}

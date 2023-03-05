@@ -1,0 +1,9 @@
+.gradle
+.nb-gradle
+.nb-gradle-properties
+build/
+target/
+testuserdir/
+*~
+/nbproject/private/
+/private/
