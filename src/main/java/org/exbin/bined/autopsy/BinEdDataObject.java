@@ -30,7 +30,7 @@ import org.openide.loaders.MultiFileLoader;
  */
 @ParametersAreNonnullByDefault
 @MIMEResolver.ExtensionRegistration(displayName = "#BinEdDataObject.extensionDisplayName", mimeType = BinEdDataObject.MIME, extension = {BinEdDataObject.MMD_EXT})
-@DataObject.Registration(displayName = "#BinEdDataObject.displayName", mimeType = BinEdDataObject.MIME, iconBase = "org/exbin/bined/netbeans/resources/icons/icon.png")
+@DataObject.Registration(displayName = "#BinEdDataObject.displayName", mimeType = BinEdDataObject.MIME, iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png")
 public class BinEdDataObject extends MultiDataObject {
 
   public static final String MIME = "application/octet-stream"; //NOI18N

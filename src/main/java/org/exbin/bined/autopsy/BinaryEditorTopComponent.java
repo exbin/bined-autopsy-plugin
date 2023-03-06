@@ -45,7 +45,7 @@ import org.openide.windows.WindowManager;
  * @author ExBin Project (https://exbin.org)
  */
 @ConvertAsProperties(dtd = "-//org.exbin.bined//BinaryEditor//EN", autostore = false)
-@TopComponent.Description(preferredID = "BinaryEditorTopComponent", iconBase = "org/exbin/bined/netbeans/resources/icons/icon.png",
+@TopComponent.Description(preferredID = "BinaryEditorTopComponent", iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
         persistenceType = TopComponent.PERSISTENCE_NEVER)
 @TopComponent.Registration(mode = "editor", openAtStartup = false)
 @TopComponent.OpenActionRegistration(displayName = "#CTL_BinaryEditorAction", preferredID = "BinaryEditorTopComponent")

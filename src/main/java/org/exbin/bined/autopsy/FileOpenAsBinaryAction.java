@@ -42,7 +42,7 @@ import org.openide.windows.WindowManager;
         id = "org.exbin.bined.autopsy.FileOpenAsBinaryAction"
 )
 @ActionRegistration(
-        iconBase = "org/exbin/bined/netbeans/resources/icons/icon.png",
+        iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
         displayName = "#CTL_FileOpenAsBinaryAction"
 )
 @ActionReference(path = "Menu/File", position = 850)

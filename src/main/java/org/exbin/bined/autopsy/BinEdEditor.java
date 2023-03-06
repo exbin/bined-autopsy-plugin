@@ -33,7 +33,7 @@ import static org.openide.windows.TopComponent.PERSISTENCE_NEVER;
         displayName = "#BinEdEditor.displayName",
         mimeType = BinEdDataObject.MIME,
         persistenceType = PERSISTENCE_NEVER,
-        iconBase = "org/exbin/bined/netbeans/resources/icons/icon.png",
+        iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
         preferredID = BinEdEditor.ID,
         position = 1
 )

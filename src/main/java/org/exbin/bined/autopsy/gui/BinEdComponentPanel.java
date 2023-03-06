@@ -102,7 +102,7 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
     private static final String BINED_TANGO_ICON_THEME_PREFIX = "/org/exbin/framework/bined/resources/icons/tango-icon-theme/16x16/actions/";
     private static final String FRAMEWORK_TANGO_ICON_THEME_PREFIX = "/org/exbin/framework/action/resources/icons/tango-icon-theme/16x16/actions/";
     private static final FileHandlingMode DEFAULT_FILE_HANDLING_MODE = FileHandlingMode.DELTA;
-    private static final String ONLINE_HELP_URL = "https://bined.exbin.org/netbeans-plugin/?manual";
+    private static final String ONLINE_HELP_URL = "https://bined.exbin.org/autopsy-plugin/?manual";
 
     private BinEdComponentFileApi fileApi = null;
     private final BinaryEditorPreferences preferences;

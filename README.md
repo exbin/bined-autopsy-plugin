@@ -1,11 +1,13 @@
 BinEd - Binary/Hexadecimal Editor - Autopsy Plugin
 ==================================================
 
-Hexadecimal viewer/editor plugin module for NetBeans platform.
+Hexadecimal viewer/editor plugin module for Autopsy digital forensics platform.
 
 Homepage: https://bined.exbin.org/autopsy-plugin  
 
-Published as: TODO  
+Published as: TODO
+
+Autopsy homepage: https://sleuthkit.org/autopsy/
 
 Screenshot
 ----------

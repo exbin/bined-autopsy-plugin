@@ -54,11 +54,12 @@ import javax.swing.SwingWorker;
 import org.exbin.bined.CodeType;
 import org.exbin.bined.EditMode;
 import org.exbin.bined.SelectionRange;
-import org.exbin.bined.highlight.swing.HighlightNonAsciiCodeAreaPainter;
+import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
 import org.exbin.bined.swing.extended.ExtCodeArea;
 import org.exbin.framework.action.gui.DropDownButton;
 import org.exbin.framework.bined.gui.GoToBinaryPanel;
 import org.exbin.framework.bined.gui.ValuesPanel;
+import org.exbin.framework.utils.LanguageUtils;
 import org.exbin.framework.utils.gui.DefaultControlPanel;
 import org.exbin.framework.utils.handler.DefaultControlHandler;
 import org.netbeans.api.progress.ProgressHandle;
@@ -68,7 +69,6 @@ import org.openide.util.lookup.ServiceProvider;
 import org.openide.windows.WindowManager;
 import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.casemodule.NoCurrentCaseException;
-import org.sleuthkit.autopsy.contentviewers.utils.ViewerPriority;
 import org.sleuthkit.autopsy.core.UserPreferences;
 import org.sleuthkit.autopsy.corecomponentinterfaces.DataContentViewer;
 import org.sleuthkit.autopsy.corecomponents.DataContentViewerUtility;
@@ -84,6 +84,8 @@ import org.sleuthkit.datamodel.Content;
 @SuppressWarnings("PMD.SingularField") // UI widgets cause lots of false positives
 @ServiceProvider(service = DataContentViewer.class, position = 1)
 public class DataContentViewerBinary extends javax.swing.JPanel implements DataContentViewer {
+
+    private final java.util.ResourceBundle resourceBundle = LanguageUtils.getResourceBundleByClass(DataContentViewerBinary.class);
 
     private Content dataSource;
     private ExtCodeArea codeArea = new ExtCodeArea();
@@ -102,12 +104,9 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
     private static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
 
-    /**
-     * Creates new form DataContentViewerBinary
-     */
     public DataContentViewerBinary() {
         codeTypeButtonGroup = new ButtonGroup();
-        binaryCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.codeType.binary")) {
+        binaryCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.binary")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 codeArea.setCodeType(CodeType.BINARY);
@@ -115,7 +114,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             }
         });
         codeTypeButtonGroup.add(binaryCodeTypeAction);
-        octalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.codeType.octal")) {
+        octalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.octal")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 codeArea.setCodeType(CodeType.OCTAL);
@@ -123,7 +122,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             }
         });
         codeTypeButtonGroup.add(octalCodeTypeAction);
-        decimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.codeType.decimal")) {
+        decimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.decimal")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 codeArea.setCodeType(CodeType.DECIMAL);
@@ -131,7 +130,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             }
         });
         codeTypeButtonGroup.add(decimalCodeTypeAction);
-        hexadecimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.codeType.hexadecimal")) {
+        hexadecimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.hexadecimal")) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 codeArea.setCodeType(CodeType.HEXADECIMAL);
@@ -158,13 +157,13 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     private void customizeComponents() {
         codeArea.setEditMode(EditMode.READ_ONLY);
         codeArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
-        codeArea.setPainter(new HighlightNonAsciiCodeAreaPainter(codeArea) {
+        codeArea.setPainter(new ExtendedHighlightNonAsciiCodeAreaPainter(codeArea) {
             @Override
             public void paintComponent(Graphics g) {
                 try {
                     super.paintComponent(g);
                 } catch (ContentBinaryData.TskReadException ex) {
-                    String message = NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.textArea.errorText", ex.getPosition(), ex.getPosition() + ex.getLength());
+                    String message = String.format(resourceBundle.getString("textArea.errorText"), ex.getPosition(), ex.getPosition() + ex.getLength());
                     if (mode == Mode.ERROR) {
                         textArea.append("\n" + message);
                     } else {
@@ -172,7 +171,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                         switchMode(Mode.ERROR);
                     }
                 } catch (Exception ex) {
-                    String message = NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.textArea.exceptionText", ex.getMessage());
+                    String message = String.format(resourceBundle.getString("textArea.exceptionText"), ex.getMessage());
                     if (mode == Mode.ERROR) {
                         textArea.append("\n" + message);
                     } else {
@@ -189,7 +188,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         valuesPanelScrollPane = new JScrollPane(valuesPanel);
         valuesPanelScrollPane.setBorder(null);
 
-        cycleCodeTypesAction.putValue(Action.SHORT_DESCRIPTION, NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.cycleCodeTypesAction.text"));
+        cycleCodeTypesAction.putValue(Action.SHORT_DESCRIPTION, resourceBundle.getString("cycleCodeTypesAction.text"));
         JPopupMenu cycleCodeTypesPopupMenu = new JPopupMenu();
         cycleCodeTypesPopupMenu.add(binaryCodeTypeAction);
         cycleCodeTypesPopupMenu.add(octalCodeTypeAction);
@@ -199,7 +198,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         updateCycleButtonState();
         controlToolBar.add(codeTypeDropDown, 0);
 
-        codeColorizationToggleButton.setSelected(((HighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).isNonAsciiHighlightingEnabled());
+        codeColorizationToggleButton.setSelected(((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).isNonAsciiHighlightingEnabled());
 
         ActionListener textAreaActionListener = new ActionListener() {
             @Override
@@ -256,7 +255,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         InputMap codeAreaInputMap = codeArea.getInputMap();
         codeAreaInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, KeyEvent.CTRL_DOWN_MASK), goToPositionActionId);
         
-        textArea.setText(NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.textArea.noDataText"));
+        textArea.setText(resourceBundle.getString("textArea.noDataText"));
     }
     
     private void switchMode(Mode mode) {
@@ -281,7 +280,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             this.mode = mode;
             switch (mode) {
                 case NO_DATA: {
-                    textArea.setText(NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.textArea.noDataText"));
+                    textArea.setText(resourceBundle.getString("textArea.noDataText"));
                     add(textAreaScrollPane, BorderLayout.CENTER);
                     break;
                 }
@@ -328,30 +327,30 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         textAreaScrollPane = new javax.swing.JScrollPane();
         textArea = new javax.swing.JTextArea();
 
-        copyMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.copyMenuItem.text")); // NOI18N
+        copyMenuItem.setText(resourceBundle.getString("copyMenuItem.text")); // NOI18N
         textAreaPopupMenu.add(copyMenuItem);
 
-        selectAllMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.selectAllMenuItem.text")); // NOI18N
+        selectAllMenuItem.setText(resourceBundle.getString("selectAllMenuItem.text")); // NOI18N
         textAreaPopupMenu.add(selectAllMenuItem);
 
-        codeAreaCopyMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.codeAreaCopyMenuItem.text")); // NOI18N
+        codeAreaCopyMenuItem.setText(resourceBundle.getString("codeAreaCopyMenuItem.text")); // NOI18N
         codeAreaPopupMenu.add(codeAreaCopyMenuItem);
 
-        codeAreaCopyTextMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.codeAreaCopyTextMenuItem.text")); // NOI18N
+        codeAreaCopyTextMenuItem.setText(resourceBundle.getString("codeAreaCopyTextMenuItem.text")); // NOI18N
         codeAreaPopupMenu.add(codeAreaCopyTextMenuItem);
 
-        codeAreaSelectAllMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.codeAreaSelectAllMenuItem.text")); // NOI18N
+        codeAreaSelectAllMenuItem.setText(resourceBundle.getString("codeAreaSelectAllMenuItem.text")); // NOI18N
         codeAreaPopupMenu.add(codeAreaSelectAllMenuItem);
 
         codeAreaGoToMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_G, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        codeAreaGoToMenuItem.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.codeAreaGoToMenuItem.text")); // NOI18N
+        codeAreaGoToMenuItem.setText(resourceBundle.getString("codeAreaGoToMenuItem.text")); // NOI18N
         codeAreaPopupMenu.add(codeAreaGoToMenuItem);
 
         controlToolBar.setBorderPainted(false);
         controlToolBar.setFocusable(false);
 
-        refreshButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/sleuthkit/autopsy/contentviewers/binary/arrow_refresh.png"))); // NOI18N
-        refreshButton.setToolTipText(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.refreshButton.toolTipText"));
+        refreshButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/arrow_refresh.png"))); // NOI18N
+        refreshButton.setToolTipText(resourceBundle.getString("refreshButton.toolTipText"));
         refreshButton.setFocusable(false);
         refreshButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         refreshButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -362,8 +361,8 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         });
         controlToolBar.add(refreshButton);
 
-        codeColorizationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/sleuthkit/autopsy/contentviewers/binary/color_swatch.png"))); // NOI18N
-        codeColorizationToggleButton.setToolTipText(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.codeColorizationToggleButton.toolTipText"));
+        codeColorizationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/color_swatch.png"))); // NOI18N
+        codeColorizationToggleButton.setToolTipText(resourceBundle.getString("codeColorizationToggleButton.toolTipText"));
         codeColorizationToggleButton.setFocusable(false);
         codeColorizationToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         codeColorizationToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -375,8 +374,8 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         controlToolBar.add(codeColorizationToggleButton);
         controlToolBar.add(jSeparator1);
 
-        goToButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/sleuthkit/autopsy/contentviewers/binary/bullet_go.png"))); // NOI18N
-        goToButton.setToolTipText(NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.goToButton.toolTipText"));
+        goToButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/bullet_go.png"))); // NOI18N
+        goToButton.setToolTipText(resourceBundle.getString("goToButton.toolTipText"));
         goToButton.setFocusable(false);
         goToButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         goToButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -387,7 +386,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         });
         controlToolBar.add(goToButton);
 
-        launchHxDButton.setText(org.openide.util.NbBundle.getMessage(DataContentViewerBinary.class, "DataContentViewerBinary.launchHxDButton.text")); // NOI18N
+        launchHxDButton.setText(resourceBundle.getString("launchHxDButton.text")); // NOI18N
         launchHxDButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 launchHxDButtonActionPerformed(evt);
@@ -459,7 +458,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
     @NbBundle.Messages({"DataContentViewerBinary.launchError=Unable to launch HxD Editor. "
         + "Please specify the HxD install location in Tools -> Options -> External Viewer",
-        "DataContentViewerBinary.copyingFile=Copying file to open in HxD..."})
+        "copyingFile=Copying file to open in HxD..."})
     private void launchHxDButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_launchHxDButtonActionPerformed
         new BackgroundFileCopyTask().execute();
     }//GEN-LAST:event_launchHxDButtonActionPerformed
@@ -526,7 +525,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     }//GEN-LAST:event_goToButtonActionPerformed
 
     private void codeColorizationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_codeColorizationToggleButtonActionPerformed
-        ((HighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).setNonAsciiHighlightingEnabled(codeColorizationToggleButton.isSelected());
+        ((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).setNonAsciiHighlightingEnabled(codeColorizationToggleButton.isSelected());
         codeArea.repaint();
     }//GEN-LAST:event_codeColorizationToggleButtonActionPerformed
 
@@ -540,50 +539,50 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
         @Override
         public Void doInBackground() throws InterruptedException {
-//            ProgressHandle progress = ProgressHandle.createHandle(Bundle.DataContentViewerBinary_copyingFile(), () -> {
-//                //Cancel the swing worker (which will interrupt the ContentUtils call below)
-//                this.cancel(true);
-//                wasCancelled = true;
-//                return true;
-//            });
-//
-//            try {
-//                File HxDExecutable = new File(UserPreferences.getExternalHexEditorPath());
-//                if (!HxDExecutable.exists() || !HxDExecutable.canExecute()) {
-//                    JOptionPane.showMessageDialog(null, Bundle.DataContentViewerBinary_launchError());
-//                    return null;
-//                }
-//
-//                String tempDirectory = Case.getCurrentCaseThrows().getTempDirectory();
-//                File tempFile = Paths.get(tempDirectory,
-//                        FileUtil.escapeFileName(dataSource.getId() + dataSource.getName())).toFile();
-//
-//                progress.start(100);
-//                ContentUtils.writeToFile(dataSource, tempFile, progress, this, true);
-//
-//                if (wasCancelled) {
-//                    tempFile.delete();
-//                    progress.finish();
-//                    return null;
-//                }
-//
-//                try {
-//                    ProcessBuilder launchHxDExecutable = new ProcessBuilder();
-//                    launchHxDExecutable.command(String.format("\"%s\" \"%s\"",
-//                            HxDExecutable.getAbsolutePath(),
-//                            tempFile.getAbsolutePath()));
-//                    launchHxDExecutable.start();
-//                } catch (IOException ex) {
-//                    logger.log(Level.WARNING, "Unsuccessful attempt to launch HxD", ex);
-//                    JOptionPane.showMessageDialog(null, Bundle.DataContentViewerBinary_launchError());
-//                    tempFile.delete();
-//                }
-//            } catch (NoCurrentCaseException | IOException ex) {
-//                logger.log(Level.SEVERE, "Unable to copy file into temp directory", ex);
-//                JOptionPane.showMessageDialog(null, Bundle.DataContentViewerBinary_launchError());
-//            }
-//
-//            progress.finish();
+            ProgressHandle progress = ProgressHandle.createHandle(resourceBundle.getString("copyingFile"), () -> {
+                //Cancel the swing worker (which will interrupt the ContentUtils call below)
+                this.cancel(true);
+                wasCancelled = true;
+                return true;
+            });
+
+            try {
+                File HxDExecutable = new File(UserPreferences.getExternalHexEditorPath());
+                if (!HxDExecutable.exists() || !HxDExecutable.canExecute()) {
+                    JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
+                    return null;
+                }
+
+                String tempDirectory = Case.getCurrentCaseThrows().getTempDirectory();
+                File tempFile = Paths.get(tempDirectory,
+                        FileUtil.escapeFileName(dataSource.getId() + dataSource.getName())).toFile();
+
+                progress.start(100);
+                ContentUtils.writeToFile(dataSource, tempFile, progress, this, true);
+
+                if (wasCancelled) {
+                    tempFile.delete();
+                    progress.finish();
+                    return null;
+                }
+
+                try {
+                    ProcessBuilder launchHxDExecutable = new ProcessBuilder();
+                    launchHxDExecutable.command(String.format("\"%s\" \"%s\"",
+                            HxDExecutable.getAbsolutePath(),
+                            tempFile.getAbsolutePath()));
+                    launchHxDExecutable.start();
+                } catch (IOException ex) {
+                    logger.log(Level.WARNING, "Unsuccessful attempt to launch HxD", ex);
+                    JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
+                    tempFile.delete();
+                }
+            } catch (NoCurrentCaseException | IOException ex) {
+                logger.log(Level.SEVERE, "Unable to copy file into temp directory", ex);
+                JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
+            }
+
+            progress.finish();
             return null;
         }
     }
@@ -633,12 +632,12 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
     @Override
     public String getTitle() {
-        return NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.title");
+        return resourceBundle.getString("title");
     }
 
     @Override
     public String getToolTip() {
-        return NbBundle.getMessage(this.getClass(), "DataContentViewerBinary.toolTip");
+        return resourceBundle.getString("toolTip");
     }
 
     @Override
@@ -665,7 +664,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
     @Override
     public int isPreferred(Node node) {
-        return ViewerPriority.viewerPriority.LevelOne.getFlag();
+        return 1;
     }
 
     @Override
