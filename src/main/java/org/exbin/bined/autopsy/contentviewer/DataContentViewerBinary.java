@@ -27,27 +27,17 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import javax.annotation.Nonnull;
-import javax.swing.AbstractAction;
-import javax.swing.ActionMap;
-import javax.swing.InputMap;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import javax.swing.JMenuItem;
-import javax.swing.JScrollPane;
-import javax.swing.KeyStroke;
 import org.exbin.bined.EditMode;
 import org.exbin.bined.SelectionRange;
+import org.exbin.bined.autopsy.gui.BinEdComponentPanel;
 import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
 import org.exbin.bined.swing.extended.ExtCodeArea;
-import org.exbin.framework.bined.gui.BinaryStatusPanel;
-import org.exbin.framework.bined.gui.ValuesPanel;
-import org.exbin.framework.bined.preferences.BinaryEditorPreferences;
-import org.exbin.framework.preferences.PreferencesWrapper;
 import org.exbin.framework.utils.LanguageUtils;
 import org.openide.nodes.Node;
 import org.openide.util.NbBundle.Messages;
-import org.openide.util.NbPreferences;
 import org.openide.util.lookup.ServiceProvider;
 import org.sleuthkit.autopsy.corecomponentinterfaces.DataContentViewer;
 import org.sleuthkit.autopsy.corecomponents.DataContentViewerUtility;
@@ -67,20 +57,13 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     private final java.util.ResourceBundle resourceBundle = LanguageUtils.getResourceBundleByClass(DataContentViewerBinary.class);
 
     private Content dataSource;
-    private final BinaryEditorPreferences preferences;
-    private ExtCodeArea codeArea = new ExtCodeArea();
-    private ValuesPanel valuesPanel;
-    private JScrollPane valuesPanelScrollPane;
-    private ViewerToolbarPanel toolbarPanel;
-    private final BinaryStatusPanel statusPanel;
+    private BinEdComponentPanel componentPanel = new BinEdComponentPanel();
 
     private Mode mode = Mode.NO_DATA;
 
     private static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
 
     public DataContentViewerBinary() {
-        preferences = new BinaryEditorPreferences(new PreferencesWrapper(NbPreferences.forModule(BinaryEditorPreferences.class)));
-        statusPanel = new BinaryStatusPanel();
 
         initComponents();
         init();
@@ -88,8 +71,8 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     }
 
     private void init() {
+        ExtCodeArea codeArea = componentPanel.getCodeArea();
         codeArea.setEditMode(EditMode.READ_ONLY);
-        codeArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
         codeArea.setPainter(new ExtendedHighlightNonAsciiCodeAreaPainter(codeArea) {
             @Override
             public void paintComponent(Graphics g) {
@@ -114,12 +97,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                 }
             }
         });
-
-        valuesPanel = new ValuesPanel();
-        valuesPanel.setCodeArea(codeArea, null);
-        valuesPanel.enableUpdate();
-        valuesPanelScrollPane = new JScrollPane(valuesPanel);
-        valuesPanelScrollPane.setBorder(null);
 
         ActionListener textAreaActionListener = new ActionListener() {
             @Override
@@ -163,39 +140,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         codeAreaCopyTextMenuItem.addActionListener(codeAreaActionListener);
         codeAreaSelectAllMenuItem.addActionListener(codeAreaActionListener);
         codeAreaGoToMenuItem.addActionListener(codeAreaActionListener);
-        codeArea.setComponentPopupMenu(codeAreaPopupMenu);
-
-        toolbarPanel = new ViewerToolbarPanel(preferences, codeArea, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        }, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        }, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        }, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-        });
-        String goToPositionActionId = "go-to-position";
-        ActionMap codeAreaActionMap = codeArea.getActionMap();
-        codeAreaActionMap.put(goToPositionActionId, new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                goToButtonActionPerformed(e);
-            }
-        });
-        InputMap codeAreaInputMap = codeArea.getInputMap();
-        codeAreaInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, KeyEvent.CTRL_DOWN_MASK), goToPositionActionId);
+        // TODO codeArea.setComponentPopupMenu(codeAreaPopupMenu);
 
         textArea.setText(resourceBundle.getString("textArea.noDataText"));
     }
@@ -208,14 +153,11 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                     break;
                 }
                 case DATA: {
-                    remove(codeArea);
-                    remove(valuesPanelScrollPane);
-                    remove(toolbarPanel);
-                    remove(statusPanel);
+                    remove(componentPanel);
                     break;
                 }
                 case ERROR: {
-                    remove(toolbarPanel);
+//                    remove(toolbarPanel);
                     remove(textAreaScrollPane);
                     break;
                 }
@@ -228,14 +170,11 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                     break;
                 }
                 case DATA: {
-                    add(codeArea, BorderLayout.CENTER);
-                    add(valuesPanelScrollPane, BorderLayout.EAST);
-                    add(toolbarPanel, BorderLayout.NORTH);
-                    add(statusPanel, BorderLayout.SOUTH);
+                    add(componentPanel, BorderLayout.CENTER);
                     break;
                 }
                 case ERROR: {
-                    add(toolbarPanel, BorderLayout.NORTH);
+//                    add(toolbarPanel, BorderLayout.NORTH);
                     add(textAreaScrollPane, BorderLayout.CENTER);
                     break;
                 }
@@ -329,7 +268,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         }
 
         dataSource = content;
-        codeArea.setContentData(new ContentBinaryData(dataSource));
+        componentPanel.setContentData(new ContentBinaryData(dataSource));
         switchMode(Mode.DATA);
     }
 
@@ -352,7 +291,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     public void resetComponent() {
         // clear / reset the fields
         this.dataSource = null;
-        codeArea.setContentData(null);
+        componentPanel.setContentData(null);
         switchMode(Mode.NO_DATA);
     }
 

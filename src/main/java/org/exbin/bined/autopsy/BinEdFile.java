@@ -203,6 +203,10 @@ public class BinEdFile implements BinEdComponentFileApi {
         componentPanel.setContentData(data);
     }
 
+    public void reloadFile() {
+        openFile(dataObject);
+    }
+
     public void saveFile() {
         ExtCodeArea codeArea = componentPanel.getCodeArea();
         BinaryData data = codeArea.getContentData();

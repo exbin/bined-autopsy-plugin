@@ -51,6 +51,7 @@ import org.exbin.bined.capability.CharsetCapable;
 import org.exbin.bined.extended.layout.ExtendedCodeAreaLayoutProfile;
 import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
 import org.exbin.bined.autopsy.BinEdApplyOptions;
+import org.exbin.bined.autopsy.BinEdFile;
 import org.exbin.bined.autopsy.action.CompareFilesAction;
 import org.exbin.bined.autopsy.action.EditSelectionAction;
 import org.exbin.bined.autopsy.action.GoToPositionAction;
@@ -147,10 +148,10 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
         defaultLayoutProfile = codeArea.getLayoutProfile();
         defaultThemeProfile = codeArea.getThemeProfile();
         defaultColorProfile = codeArea.getColorsProfile();
-        toolbarPanel = new BinEdToolbarPanel(preferences, codeArea, createOptionsAction(), createOnlineHelpAction());
+        goToPositionAction = new GoToPositionAction(codeArea);
+        toolbarPanel = new BinEdToolbarPanel(preferences, codeArea, createRefreshAction(), goToPositionAction, createOptionsAction(), createOnlineHelpAction());
         statusPanel = new BinaryStatusPanel();
 
-        goToPositionAction = new GoToPositionAction(codeArea);
         insertDataAction = new InsertDataAction(codeArea);
         editSelectionAction = new EditSelectionAction(codeArea);
         compareFilesAction = new CompareFilesAction(codeArea);
@@ -632,6 +633,21 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
         }
     }
 
+    @Nonnull
+    private AbstractAction createRefreshAction() {
+        return new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (releaseFile()) {
+                    if (fileApi instanceof BinEdFile) {
+                        ((BinEdFile) fileApi).reloadFile();
+                    }
+                    // TODO else
+                }
+            }
+        };
+    }
+    
     @Nonnull
     private AbstractAction createOptionsAction() {
         return new AbstractAction() {
