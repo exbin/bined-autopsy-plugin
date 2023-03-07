@@ -38,14 +38,14 @@ import org.openide.windows.WindowManager;
  * @author ExBin Project (https://exbin.org)
  */
 @ActionID(
-        category = "File",
+        category = "Tools",
         id = "org.exbin.bined.autopsy.FileOpenAsBinaryAction"
 )
 @ActionRegistration(
         iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
         displayName = "#CTL_FileOpenAsBinaryAction"
 )
-@ActionReference(path = "Menu/File", position = 850)
+@ActionReference(path = "Menu/Tools", position = 850)
 @NbBundle.Messages("CTL_FileOpenAsBinaryAction=Open File as Binary...")
 @ParametersAreNonnullByDefault
 public final class FileOpenAsBinaryAction implements ActionListener {

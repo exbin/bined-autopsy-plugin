@@ -20,7 +20,6 @@ package org.exbin.bined.autopsy.contentviewer;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Toolkit;
@@ -29,57 +28,37 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.ActionMap;
-import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import org.sleuthkit.autopsy.coreutils.PlatformUtil;
-import org.openide.util.NbBundle;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPopupMenu;
-import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import org.exbin.bined.CodeType;
 import org.exbin.bined.EditMode;
 import org.exbin.bined.SelectionRange;
 import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
 import org.exbin.bined.swing.extended.ExtCodeArea;
-import org.exbin.framework.action.gui.DropDownButton;
-import org.exbin.framework.bined.gui.GoToBinaryPanel;
+import org.exbin.framework.bined.gui.BinaryStatusPanel;
 import org.exbin.framework.bined.gui.ValuesPanel;
+import org.exbin.framework.bined.preferences.BinaryEditorPreferences;
+import org.exbin.framework.preferences.PreferencesWrapper;
 import org.exbin.framework.utils.LanguageUtils;
-import org.exbin.framework.utils.gui.DefaultControlPanel;
-import org.exbin.framework.utils.handler.DefaultControlHandler;
-import org.netbeans.api.progress.ProgressHandle;
 import org.openide.nodes.Node;
 import org.openide.util.NbBundle.Messages;
+import org.openide.util.NbPreferences;
 import org.openide.util.lookup.ServiceProvider;
-import org.openide.windows.WindowManager;
-import org.sleuthkit.autopsy.casemodule.Case;
-import org.sleuthkit.autopsy.casemodule.NoCurrentCaseException;
-import org.sleuthkit.autopsy.core.UserPreferences;
 import org.sleuthkit.autopsy.corecomponentinterfaces.DataContentViewer;
 import org.sleuthkit.autopsy.corecomponents.DataContentViewerUtility;
-import org.sleuthkit.autopsy.coreutils.FileUtil;
-import org.sleuthkit.autopsy.datamodel.ContentUtils;
 import org.sleuthkit.autopsy.datamodel.DataConversion;
 import org.sleuthkit.datamodel.BlackboardArtifact;
 import org.sleuthkit.datamodel.Content;
 
 /**
  * Binary view of file contents.
+ *
+ * @author ExBin Project (https://exbin.org)
  */
 @SuppressWarnings("PMD.SingularField") // UI widgets cause lots of false positives
 @ServiceProvider(service = DataContentViewer.class, position = 1)
@@ -88,73 +67,27 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     private final java.util.ResourceBundle resourceBundle = LanguageUtils.getResourceBundleByClass(DataContentViewerBinary.class);
 
     private Content dataSource;
+    private final BinaryEditorPreferences preferences;
     private ExtCodeArea codeArea = new ExtCodeArea();
     private ValuesPanel valuesPanel;
     private JScrollPane valuesPanelScrollPane;
+    private ViewerToolbarPanel toolbarPanel;
+    private final BinaryStatusPanel statusPanel;
 
     private Mode mode = Mode.NO_DATA;
-
-    private final AbstractAction cycleCodeTypesAction;
-    private final JRadioButtonMenuItem binaryCodeTypeAction;
-    private final JRadioButtonMenuItem octalCodeTypeAction;
-    private final JRadioButtonMenuItem decimalCodeTypeAction;
-    private final JRadioButtonMenuItem hexadecimalCodeTypeAction;
-    private final ButtonGroup codeTypeButtonGroup;
-    private DropDownButton codeTypeDropDown;
 
     private static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
 
     public DataContentViewerBinary() {
-        codeTypeButtonGroup = new ButtonGroup();
-        binaryCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.binary")) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.BINARY);
-                updateCycleButtonState();
-            }
-        });
-        codeTypeButtonGroup.add(binaryCodeTypeAction);
-        octalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.octal")) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.OCTAL);
-                updateCycleButtonState();
-            }
-        });
-        codeTypeButtonGroup.add(octalCodeTypeAction);
-        decimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.decimal")) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.DECIMAL);
-                updateCycleButtonState();
-            }
-        });
-        codeTypeButtonGroup.add(decimalCodeTypeAction);
-        hexadecimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.hexadecimal")) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.HEXADECIMAL);
-                updateCycleButtonState();
-            }
-        });
-        codeTypeButtonGroup.add(hexadecimalCodeTypeAction);
-        cycleCodeTypesAction = new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int codeTypePos = codeArea.getCodeType().ordinal();
-                CodeType[] values = CodeType.values();
-                CodeType next = codeTypePos + 1 >= values.length ? values[0] : values[codeTypePos + 1];
-                codeArea.setCodeType(next);
-                updateCycleButtonState();
-            }
-        };
+        preferences = new BinaryEditorPreferences(new PreferencesWrapper(NbPreferences.forModule(BinaryEditorPreferences.class)));
+        statusPanel = new BinaryStatusPanel();
 
         initComponents();
-        customizeComponents();
+        init();
         this.resetComponent();
     }
 
-    private void customizeComponents() {
+    private void init() {
         codeArea.setEditMode(EditMode.READ_ONLY);
         codeArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
         codeArea.setPainter(new ExtendedHighlightNonAsciiCodeAreaPainter(codeArea) {
@@ -187,18 +120,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         valuesPanel.enableUpdate();
         valuesPanelScrollPane = new JScrollPane(valuesPanel);
         valuesPanelScrollPane.setBorder(null);
-
-        cycleCodeTypesAction.putValue(Action.SHORT_DESCRIPTION, resourceBundle.getString("cycleCodeTypesAction.text"));
-        JPopupMenu cycleCodeTypesPopupMenu = new JPopupMenu();
-        cycleCodeTypesPopupMenu.add(binaryCodeTypeAction);
-        cycleCodeTypesPopupMenu.add(octalCodeTypeAction);
-        cycleCodeTypesPopupMenu.add(decimalCodeTypeAction);
-        cycleCodeTypesPopupMenu.add(hexadecimalCodeTypeAction);
-        codeTypeDropDown = new DropDownButton(cycleCodeTypesAction, cycleCodeTypesPopupMenu);
-        updateCycleButtonState();
-        controlToolBar.add(codeTypeDropDown, 0);
-
-        codeColorizationToggleButton.setSelected(((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).isNonAsciiHighlightingEnabled());
 
         ActionListener textAreaActionListener = new ActionListener() {
             @Override
@@ -244,6 +165,27 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         codeAreaGoToMenuItem.addActionListener(codeAreaActionListener);
         codeArea.setComponentPopupMenu(codeAreaPopupMenu);
 
+        toolbarPanel = new ViewerToolbarPanel(preferences, codeArea, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        }, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        }, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        }, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        });
         String goToPositionActionId = "go-to-position";
         ActionMap codeAreaActionMap = codeArea.getActionMap();
         codeAreaActionMap.put(goToPositionActionId, new AbstractAction() {
@@ -254,10 +196,10 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         });
         InputMap codeAreaInputMap = codeArea.getInputMap();
         codeAreaInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, KeyEvent.CTRL_DOWN_MASK), goToPositionActionId);
-        
+
         textArea.setText(resourceBundle.getString("textArea.noDataText"));
     }
-    
+
     private void switchMode(Mode mode) {
         if (this.mode != mode) {
             switch (this.mode) {
@@ -268,11 +210,12 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                 case DATA: {
                     remove(codeArea);
                     remove(valuesPanelScrollPane);
-                    remove(toolBarPanel);
+                    remove(toolbarPanel);
+                    remove(statusPanel);
                     break;
                 }
                 case ERROR: {
-                    remove(toolBarPanel);
+                    remove(toolbarPanel);
                     remove(textAreaScrollPane);
                     break;
                 }
@@ -287,16 +230,17 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                 case DATA: {
                     add(codeArea, BorderLayout.CENTER);
                     add(valuesPanelScrollPane, BorderLayout.EAST);
-                    add(toolBarPanel, BorderLayout.NORTH);
+                    add(toolbarPanel, BorderLayout.NORTH);
+                    add(statusPanel, BorderLayout.SOUTH);
                     break;
                 }
                 case ERROR: {
-                    add(toolBarPanel, BorderLayout.NORTH);
+                    add(toolbarPanel, BorderLayout.NORTH);
                     add(textAreaScrollPane, BorderLayout.CENTER);
                     break;
                 }
             }
-            invalidate();
+            revalidate();
         }
     }
 
@@ -317,13 +261,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         codeAreaCopyTextMenuItem = new javax.swing.JMenuItem();
         codeAreaSelectAllMenuItem = new javax.swing.JMenuItem();
         codeAreaGoToMenuItem = new javax.swing.JMenuItem();
-        toolBarPanel = new javax.swing.JPanel();
-        controlToolBar = new javax.swing.JToolBar();
-        refreshButton = new javax.swing.JButton();
-        codeColorizationToggleButton = new javax.swing.JToggleButton();
-        jSeparator1 = new javax.swing.JToolBar.Separator();
-        goToButton = new javax.swing.JButton();
-        launchHxDButton = new javax.swing.JButton();
         textAreaScrollPane = new javax.swing.JScrollPane();
         textArea = new javax.swing.JTextArea();
 
@@ -346,71 +283,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         codeAreaGoToMenuItem.setText(resourceBundle.getString("codeAreaGoToMenuItem.text")); // NOI18N
         codeAreaPopupMenu.add(codeAreaGoToMenuItem);
 
-        controlToolBar.setBorderPainted(false);
-        controlToolBar.setFocusable(false);
-
-        refreshButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/arrow_refresh.png"))); // NOI18N
-        refreshButton.setToolTipText(resourceBundle.getString("refreshButton.toolTipText"));
-        refreshButton.setFocusable(false);
-        refreshButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        refreshButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        refreshButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                refreshButtonActionPerformed(evt);
-            }
-        });
-        controlToolBar.add(refreshButton);
-
-        codeColorizationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/color_swatch.png"))); // NOI18N
-        codeColorizationToggleButton.setToolTipText(resourceBundle.getString("codeColorizationToggleButton.toolTipText"));
-        codeColorizationToggleButton.setFocusable(false);
-        codeColorizationToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        codeColorizationToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        codeColorizationToggleButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                codeColorizationToggleButtonActionPerformed(evt);
-            }
-        });
-        controlToolBar.add(codeColorizationToggleButton);
-        controlToolBar.add(jSeparator1);
-
-        goToButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/bullet_go.png"))); // NOI18N
-        goToButton.setToolTipText(resourceBundle.getString("goToButton.toolTipText"));
-        goToButton.setFocusable(false);
-        goToButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        goToButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        goToButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                goToButtonActionPerformed(evt);
-            }
-        });
-        controlToolBar.add(goToButton);
-
-        launchHxDButton.setText(resourceBundle.getString("launchHxDButton.text")); // NOI18N
-        launchHxDButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                launchHxDButtonActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout toolBarPanelLayout = new javax.swing.GroupLayout(toolBarPanel);
-        toolBarPanel.setLayout(toolBarPanelLayout);
-        toolBarPanelLayout.setHorizontalGroup(
-            toolBarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, toolBarPanelLayout.createSequentialGroup()
-                .addComponent(controlToolBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(launchHxDButton)
-                .addContainerGap())
-        );
-        toolBarPanelLayout.setVerticalGroup(
-            toolBarPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(launchHxDButton)
-            .addComponent(controlToolBar, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-        );
-
-        launchHxDButton.setEnabled(PlatformUtil.isWindowsOS());
-
         setPreferredSize(new java.awt.Dimension(100, 58));
         setLayout(new java.awt.BorderLayout());
 
@@ -425,186 +297,17 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         add(textAreaScrollPane, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void updateCycleButtonState() {
-        CodeType codeType = codeArea.getCodeType();
-        codeTypeDropDown.setActionText(codeType.name().substring(0, 3));
-        switch (codeType) {
-            case BINARY: {
-                if (!binaryCodeTypeAction.isSelected()) {
-                    binaryCodeTypeAction.setSelected(true);
-                }
-                break;
-            }
-            case OCTAL: {
-                if (!octalCodeTypeAction.isSelected()) {
-                    octalCodeTypeAction.setSelected(true);
-                }
-                break;
-            }
-            case DECIMAL: {
-                if (!decimalCodeTypeAction.isSelected()) {
-                    decimalCodeTypeAction.setSelected(true);
-                }
-                break;
-            }
-            case HEXADECIMAL: {
-                if (!hexadecimalCodeTypeAction.isSelected()) {
-                    hexadecimalCodeTypeAction.setSelected(true);
-                }
-                break;
-            }
-        }
-    }
-
-    @NbBundle.Messages({"DataContentViewerBinary.launchError=Unable to launch HxD Editor. "
-        + "Please specify the HxD install location in Tools -> Options -> External Viewer",
-        "copyingFile=Copying file to open in HxD..."})
-    private void launchHxDButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_launchHxDButtonActionPerformed
-        new BackgroundFileCopyTask().execute();
-    }//GEN-LAST:event_launchHxDButtonActionPerformed
-
-    private void refreshButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshButtonActionPerformed
-        if (mode != Mode.NO_DATA) {
-            ((ContentBinaryData) codeArea.getContentData()).clearCache();
-            if (mode == Mode.ERROR) {
-                switchMode(Mode.DATA);
-            }
-            codeArea.repaint();
-        }
-    }//GEN-LAST:event_refreshButtonActionPerformed
-
-    private void goToButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_goToButtonActionPerformed
-        JDialog dialog = new JDialog(WindowManager.getDefault().getMainWindow(), true);
-        dialog.setTitle(NbBundle.getMessage(this.getClass(), "GoToBinaryPanel.title"));
-        GoToBinaryPanel goToPanel = new GoToBinaryPanel();
-        goToPanel.setCursorPosition(codeArea.getDataPosition());
-        goToPanel.setMaxPosition(codeArea.getDataSize());
-        DefaultControlPanel controlPanel = new DefaultControlPanel();
-        dialog.getContentPane().add(controlPanel, BorderLayout.SOUTH);
-        dialog.getContentPane().add(goToPanel, BorderLayout.CENTER);
-        controlPanel.setHandler((actionType) -> {
-            if (actionType == DefaultControlHandler.ControlActionType.OK) {
-                goToPanel.acceptInput();
-                codeArea.setCaretPosition(goToPanel.getTargetPosition());
-                codeArea.revealCursor();
-            }
-
-            dialog.setVisible(false);
-            dialog.dispose();
-        });
-
-//        String cancelName = "esc-cancel";
-//        String enterOk = "enter-ok";
-//        InputMap inputMap = dialog.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-//
-//        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), cancelName);
-//        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), enterOk);
-//        ActionMap actionMap = dialog.getRootPane().getActionMap();
-
-//        actionMap.put(cancelName, new AbstractAction() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                dialog.dispose();
-//            }
-//        });
-//
-//        actionMap.put(enterOk, new AbstractAction() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                goToPanel.acceptInput();
-//                controlPanel.performOk();
-//            }
-//        });
-
-        SwingUtilities.invokeLater(goToPanel::initFocus);
-        Dimension preferredSize = goToPanel.getPreferredSize();
-        dialog.getContentPane().setPreferredSize(new Dimension(preferredSize.width, preferredSize.height + controlPanel.getPreferredSize().height));
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-    }//GEN-LAST:event_goToButtonActionPerformed
-
-    private void codeColorizationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_codeColorizationToggleButtonActionPerformed
-        ((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).setNonAsciiHighlightingEnabled(codeColorizationToggleButton.isSelected());
-        codeArea.repaint();
-    }//GEN-LAST:event_codeColorizationToggleButtonActionPerformed
-
-    /**
-     * Performs the file copying and process launching in a SwingWorker so that
-     * the UI is not blocked when opening large files.
-     */
-    private class BackgroundFileCopyTask extends SwingWorker<Void, Void> {
-
-        private boolean wasCancelled = false;
-
-        @Override
-        public Void doInBackground() throws InterruptedException {
-            ProgressHandle progress = ProgressHandle.createHandle(resourceBundle.getString("copyingFile"), () -> {
-                //Cancel the swing worker (which will interrupt the ContentUtils call below)
-                this.cancel(true);
-                wasCancelled = true;
-                return true;
-            });
-
-            try {
-                File HxDExecutable = new File(UserPreferences.getExternalHexEditorPath());
-                if (!HxDExecutable.exists() || !HxDExecutable.canExecute()) {
-                    JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
-                    return null;
-                }
-
-                String tempDirectory = Case.getCurrentCaseThrows().getTempDirectory();
-                File tempFile = Paths.get(tempDirectory,
-                        FileUtil.escapeFileName(dataSource.getId() + dataSource.getName())).toFile();
-
-                progress.start(100);
-                ContentUtils.writeToFile(dataSource, tempFile, progress, this, true);
-
-                if (wasCancelled) {
-                    tempFile.delete();
-                    progress.finish();
-                    return null;
-                }
-
-                try {
-                    ProcessBuilder launchHxDExecutable = new ProcessBuilder();
-                    launchHxDExecutable.command(String.format("\"%s\" \"%s\"",
-                            HxDExecutable.getAbsolutePath(),
-                            tempFile.getAbsolutePath()));
-                    launchHxDExecutable.start();
-                } catch (IOException ex) {
-                    logger.log(Level.WARNING, "Unsuccessful attempt to launch HxD", ex);
-                    JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
-                    tempFile.delete();
-                }
-            } catch (NoCurrentCaseException | IOException ex) {
-                logger.log(Level.SEVERE, "Unable to copy file into temp directory", ex);
-                JOptionPane.showMessageDialog(null, resourceBundle.getString("launchError"));
-            }
-
-            progress.finish();
-            return null;
-        }
-    }
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem codeAreaCopyMenuItem;
     private javax.swing.JMenuItem codeAreaCopyTextMenuItem;
     private javax.swing.JMenuItem codeAreaGoToMenuItem;
     private javax.swing.JPopupMenu codeAreaPopupMenu;
     private javax.swing.JMenuItem codeAreaSelectAllMenuItem;
-    private javax.swing.JToggleButton codeColorizationToggleButton;
-    private javax.swing.JToolBar controlToolBar;
     private javax.swing.JMenuItem copyMenuItem;
-    private javax.swing.JButton goToButton;
-    private javax.swing.JToolBar.Separator jSeparator1;
-    private javax.swing.JButton launchHxDButton;
-    private javax.swing.JButton refreshButton;
     private javax.swing.JMenuItem selectAllMenuItem;
     private javax.swing.JTextArea textArea;
     private javax.swing.JPopupMenu textAreaPopupMenu;
     private javax.swing.JScrollPane textAreaScrollPane;
-    private javax.swing.JPanel toolBarPanel;
     // End of variables declaration//GEN-END:variables
 
     @Messages({
@@ -667,9 +370,14 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         return 1;
     }
 
+    @Nonnull
     @Override
     public Component getComponent() {
         return this;
+    }
+
+    private void goToButtonActionPerformed(ActionEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     private enum Mode {

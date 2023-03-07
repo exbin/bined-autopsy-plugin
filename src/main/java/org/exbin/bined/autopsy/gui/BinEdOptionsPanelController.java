@@ -31,13 +31,14 @@ import org.openide.util.NbPreferences;
  *
  * @author ExBin Project (https://exbin.org)
  */
-@OptionsPanelController.SubRegistration(
-        location = "Advanced",
-        displayName = "#AdvancedOption_DisplayName_BinEd",
-        keywords = "#AdvancedOption_Keywords_BinEd",
-        keywordsCategory = "Advanced/BinEd"
+@OptionsPanelController.TopLevelRegistration(
+        position = 500,
+        iconBase = "org/exbin/bined/autopsy/resources/images/bined-icon-32x32.png",
+        categoryName = "#Options_DisplayName_BinEd",
+        keywords = "#Options_Keywords_BinEd",
+        keywordsCategory = "BinEd"
 )
-@org.openide.util.NbBundle.Messages({"AdvancedOption_DisplayName_BinEd=BinEd", "AdvancedOption_Keywords_BinEd=BinEd hexadecimal editor"})
+@org.openide.util.NbBundle.Messages({"Options_DisplayName_BinEd=BinEd", "Options_Keywords_BinEd=BinEd binary hexadecimal editor"})
 public final class BinEdOptionsPanelController extends OptionsPanelController {
 
     private BinEdOptionsPanel panel;
