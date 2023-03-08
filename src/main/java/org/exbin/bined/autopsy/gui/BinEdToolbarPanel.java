@@ -27,6 +27,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
 import org.exbin.bined.CodeType;
 import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
+import org.exbin.bined.operation.undo.BinaryDataUndoHandler;
 import org.exbin.bined.swing.extended.ExtCodeArea;
 import org.exbin.framework.bined.preferences.BinaryEditorPreferences;
 import org.exbin.framework.action.gui.DropDownButton;
@@ -44,6 +45,8 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
 
     private final BinaryEditorPreferences preferences;
     private final ExtCodeArea codeArea;
+
+    private BinaryDataUndoHandler undoHandler = null;
     private final ActionListener refreshAction;
     private final ActionListener goToPositionAction;
     private final AbstractAction optionsAction;
@@ -56,6 +59,10 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
     private final JRadioButtonMenuItem hexadecimalCodeTypeAction;
     private final ButtonGroup codeTypeButtonGroup;
     private DropDownButton codeTypeDropDown;
+
+    private JButton saveButton = null;
+    private JButton undoEditButton = null;
+    private JButton redoEditButton = null;
 
     public BinEdToolbarPanel(BinaryEditorPreferences preferences, ExtCodeArea codeArea, ActionListener refreshAction, ActionListener goToPositionAction, AbstractAction optionsAction, AbstractAction onlineHelpAction) {
         this.preferences = preferences;
@@ -182,6 +189,65 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
 
     public void updateUnprintables() {
         showUnprintablesToggleButton.setSelected(codeArea.isShowUnprintables());
+    }
+
+    public void updateUndoState() {
+        if (undoHandler != null) {
+            undoEditButton.setEnabled(undoHandler.canUndo());
+            redoEditButton.setEnabled(undoHandler.canRedo());
+        }
+    }
+
+    public void updateModified(boolean modified) {
+        if (saveButton != null) {
+            saveButton.setEnabled(modified);
+        }
+    }
+
+    public void setUndoHandler(BinaryDataUndoHandler undoHandler) {
+        this.undoHandler = undoHandler;
+
+        undoEditButton = new JButton();
+        undoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/edit-undo.png")));
+        undoEditButton.setToolTipText("Undo last operation");
+        undoEditButton.addActionListener((evt) -> {
+            try {
+                undoHandler.performUndo();
+                codeArea.repaint();
+                updateUndoState();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        redoEditButton = new JButton();
+        redoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/edit-redo.png")));
+        redoEditButton.setToolTipText("Redo last undid operation");
+        redoEditButton.addActionListener((evt) -> {
+            try {
+                undoHandler.performRedo();
+                codeArea.repaint();
+                updateUndoState();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        updateUndoState();
+        int position = saveButton != null ? 1 : 0;
+        controlToolBar.add(undoEditButton, position);
+        controlToolBar.add(redoEditButton, position + 1);
+        controlToolBar.add(new javax.swing.JSeparator(), position + 2);
+    }
+
+    public void setSaveAction(ActionListener saveAction) {
+        saveButton = new JButton();
+        saveButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/document-save.png")));
+        saveButton.setToolTipText("Save current file");
+        saveButton.setEnabled(false);
+        saveButton.addActionListener((evt) -> {
+            saveAction.actionPerformed(new ActionEvent(BinEdToolbarPanel.this, 0, ""));
+        });
+        controlToolBar.add(saveButton, 0);
     }
 
     @Override

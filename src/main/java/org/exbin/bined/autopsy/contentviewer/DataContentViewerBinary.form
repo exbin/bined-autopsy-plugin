@@ -24,45 +24,6 @@
         </MenuItem>
       </SubComponents>
     </Container>
-    <Container class="javax.swing.JPopupMenu" name="codeAreaPopupMenu">
-
-      <Layout class="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout">
-        <Property name="useNullLayout" type="boolean" value="true"/>
-      </Layout>
-      <SubComponents>
-        <MenuItem class="javax.swing.JMenuItem" name="codeAreaCopyMenuItem">
-          <Properties>
-            <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-              <ResourceString bundle="org/exbin/bined/autopsy/contentviewer/resources/DataContentViewerBinary.properties" key="codeAreaCopyMenuItem.text" replaceFormat="resourceBundle.getString(&quot;{key}&quot;)"/>
-            </Property>
-          </Properties>
-        </MenuItem>
-        <MenuItem class="javax.swing.JMenuItem" name="codeAreaCopyTextMenuItem">
-          <Properties>
-            <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-              <ResourceString bundle="org/exbin/bined/autopsy/contentviewer/resources/DataContentViewerBinary.properties" key="codeAreaCopyTextMenuItem.text" replaceFormat="resourceBundle.getString(&quot;{key}&quot;)"/>
-            </Property>
-          </Properties>
-        </MenuItem>
-        <MenuItem class="javax.swing.JMenuItem" name="codeAreaSelectAllMenuItem">
-          <Properties>
-            <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-              <ResourceString bundle="org/exbin/bined/autopsy/contentviewer/resources/DataContentViewerBinary.properties" key="codeAreaSelectAllMenuItem.text" replaceFormat="resourceBundle.getString(&quot;{key}&quot;)"/>
-            </Property>
-          </Properties>
-        </MenuItem>
-        <MenuItem class="javax.swing.JMenuItem" name="codeAreaGoToMenuItem">
-          <Properties>
-            <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
-              <KeyStroke key="Ctrl+G"/>
-            </Property>
-            <Property name="text" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-              <ResourceString bundle="org/exbin/bined/autopsy/contentviewer/resources/DataContentViewerBinary.properties" key="codeAreaGoToMenuItem.text" replaceFormat="resourceBundle.getString(&quot;{key}&quot;)"/>
-            </Property>
-          </Properties>
-        </MenuItem>
-      </SubComponents>
-    </Container>
   </NonVisualComponents>
   <Properties>
     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">

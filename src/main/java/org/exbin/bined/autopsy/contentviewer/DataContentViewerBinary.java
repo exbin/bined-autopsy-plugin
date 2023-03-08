@@ -22,26 +22,23 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.annotation.Nonnull;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import javax.swing.JMenuItem;
 import org.exbin.bined.EditMode;
-import org.exbin.bined.SelectionRange;
+import org.exbin.bined.autopsy.gui.BinEdComponentFileApi;
 import org.exbin.bined.autopsy.gui.BinEdComponentPanel;
 import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
 import org.exbin.bined.swing.extended.ExtCodeArea;
+import org.exbin.framework.bined.FileHandlingMode;
 import org.exbin.framework.utils.LanguageUtils;
 import org.openide.nodes.Node;
 import org.openide.util.NbBundle.Messages;
 import org.openide.util.lookup.ServiceProvider;
 import org.sleuthkit.autopsy.corecomponentinterfaces.DataContentViewer;
 import org.sleuthkit.autopsy.corecomponents.DataContentViewerUtility;
-import org.sleuthkit.autopsy.datamodel.DataConversion;
 import org.sleuthkit.datamodel.BlackboardArtifact;
 import org.sleuthkit.datamodel.Content;
 
@@ -64,13 +61,33 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     private static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
 
     public DataContentViewerBinary() {
-
         initComponents();
         init();
         this.resetComponent();
     }
 
     private void init() {
+        componentPanel.setFileApi(new BinEdComponentFileApi() {
+            @Override
+            public boolean isSaveSupported() {
+                return false;
+            }
+
+            @Override
+            public void saveDocument() {
+                throw new IllegalStateException();
+            }
+
+            @Override
+            public void switchFileHandlingMode(FileHandlingMode newHandlingMode) {
+                // ignore
+            }
+
+            @Override
+            public void closeData() {
+                // ignore
+            }
+        });
         ExtCodeArea codeArea = componentPanel.getCodeArea();
         codeArea.setEditMode(EditMode.READ_ONLY);
         codeArea.setPainter(new ExtendedHighlightNonAsciiCodeAreaPainter(codeArea) {
@@ -98,49 +115,16 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             }
         });
 
-        ActionListener textAreaActionListener = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JMenuItem jmi = (JMenuItem) e.getSource();
-                if (jmi.equals(copyMenuItem)) {
-                    textArea.copy();
-                } else if (jmi.equals(selectAllMenuItem)) {
-                    textArea.selectAll();
-                }
+        ActionListener textAreaActionListener = (ActionEvent e) -> {
+            JMenuItem jmi = (JMenuItem) e.getSource();
+            if (jmi.equals(copyMenuItem)) {
+                textArea.copy();
+            } else if (jmi.equals(selectAllMenuItem)) {
+                textArea.selectAll();
             }
         };
         copyMenuItem.addActionListener(textAreaActionListener);
         selectAllMenuItem.addActionListener(textAreaActionListener);
-
-        ActionListener codeAreaActionListener = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JMenuItem jmi = (JMenuItem) e.getSource();
-                if (jmi.equals(codeAreaCopyMenuItem)) {
-                    codeArea.copy();
-                } else if (jmi.equals(codeAreaCopyTextMenuItem)) {
-                    SelectionRange selectionRange = codeArea.getSelection();
-                    long selectionLength = selectionRange.getLength();
-                    if (!selectionRange.isEmpty() && selectionLength < Integer.MAX_VALUE) {
-                        byte[] selectionData = new byte[(int) selectionLength];
-                        codeArea.getContentData().copyToArray(selectionRange.getStart(), selectionData, 0, (int) selectionLength);
-                        String clipboardContent = DataConversion.byteArrayToHex(selectionData, (int) selectionLength, 0);
-                        StringSelection selection = new StringSelection(clipboardContent);
-                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                        clipboard.setContents(selection, selection);
-                    }
-                } else if (jmi.equals(codeAreaGoToMenuItem)) {
-                    goToButtonActionPerformed(e);
-                } else if (jmi.equals(codeAreaSelectAllMenuItem)) {
-                    codeArea.selectAll();
-                }
-            }
-        };
-        codeAreaCopyMenuItem.addActionListener(codeAreaActionListener);
-        codeAreaCopyTextMenuItem.addActionListener(codeAreaActionListener);
-        codeAreaSelectAllMenuItem.addActionListener(codeAreaActionListener);
-        codeAreaGoToMenuItem.addActionListener(codeAreaActionListener);
-        // TODO codeArea.setComponentPopupMenu(codeAreaPopupMenu);
 
         textArea.setText(resourceBundle.getString("textArea.noDataText"));
     }
@@ -180,6 +164,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                 }
             }
             revalidate();
+            repaint();
         }
     }
 
@@ -195,11 +180,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         textAreaPopupMenu = new javax.swing.JPopupMenu();
         copyMenuItem = new javax.swing.JMenuItem();
         selectAllMenuItem = new javax.swing.JMenuItem();
-        codeAreaPopupMenu = new javax.swing.JPopupMenu();
-        codeAreaCopyMenuItem = new javax.swing.JMenuItem();
-        codeAreaCopyTextMenuItem = new javax.swing.JMenuItem();
-        codeAreaSelectAllMenuItem = new javax.swing.JMenuItem();
-        codeAreaGoToMenuItem = new javax.swing.JMenuItem();
         textAreaScrollPane = new javax.swing.JScrollPane();
         textArea = new javax.swing.JTextArea();
 
@@ -208,19 +188,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
         selectAllMenuItem.setText(resourceBundle.getString("selectAllMenuItem.text")); // NOI18N
         textAreaPopupMenu.add(selectAllMenuItem);
-
-        codeAreaCopyMenuItem.setText(resourceBundle.getString("codeAreaCopyMenuItem.text")); // NOI18N
-        codeAreaPopupMenu.add(codeAreaCopyMenuItem);
-
-        codeAreaCopyTextMenuItem.setText(resourceBundle.getString("codeAreaCopyTextMenuItem.text")); // NOI18N
-        codeAreaPopupMenu.add(codeAreaCopyTextMenuItem);
-
-        codeAreaSelectAllMenuItem.setText(resourceBundle.getString("codeAreaSelectAllMenuItem.text")); // NOI18N
-        codeAreaPopupMenu.add(codeAreaSelectAllMenuItem);
-
-        codeAreaGoToMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_G, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        codeAreaGoToMenuItem.setText(resourceBundle.getString("codeAreaGoToMenuItem.text")); // NOI18N
-        codeAreaPopupMenu.add(codeAreaGoToMenuItem);
 
         setPreferredSize(new java.awt.Dimension(100, 58));
         setLayout(new java.awt.BorderLayout());
@@ -237,11 +204,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JMenuItem codeAreaCopyMenuItem;
-    private javax.swing.JMenuItem codeAreaCopyTextMenuItem;
-    private javax.swing.JMenuItem codeAreaGoToMenuItem;
-    private javax.swing.JPopupMenu codeAreaPopupMenu;
-    private javax.swing.JMenuItem codeAreaSelectAllMenuItem;
     private javax.swing.JMenuItem copyMenuItem;
     private javax.swing.JMenuItem selectAllMenuItem;
     private javax.swing.JTextArea textArea;
@@ -268,6 +230,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         }
 
         dataSource = content;
+        componentPanel.getCodeArea().setCaretPosition(0);
         componentPanel.setContentData(new ContentBinaryData(dataSource));
         switchMode(Mode.DATA);
     }
@@ -313,10 +276,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
     @Override
     public Component getComponent() {
         return this;
-    }
-
-    private void goToButtonActionPerformed(ActionEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     private enum Mode {

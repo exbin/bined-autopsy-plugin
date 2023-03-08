@@ -57,6 +57,7 @@ import org.exbin.bined.autopsy.action.EditSelectionAction;
 import org.exbin.bined.autopsy.action.GoToPositionAction;
 import org.exbin.bined.autopsy.action.InsertDataAction;
 import org.exbin.bined.autopsy.action.SearchAction;
+import org.exbin.bined.autopsy.contentviewer.ContentBinaryData;
 import org.exbin.bined.operation.BinaryDataCommand;
 import org.exbin.bined.operation.swing.CodeAreaOperationCommandHandler;
 import org.exbin.bined.operation.undo.BinaryDataUndoHandler;
@@ -311,6 +312,11 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
 
     public void setFileApi(BinEdComponentFileApi fileApi) {
         this.fileApi = fileApi;
+        if (fileApi.isSaveSupported()) {
+            toolbarPanel.setSaveAction((e) -> {
+                saveDocument();
+            });
+        }
     }
 
     private void switchShowValuesPanel(boolean showValuesPanel) {
@@ -423,7 +429,7 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
             modifiedChangeListener.modifiedChanged();
         }
 
-//        toolbarPanel.updateModified(isModified());
+        toolbarPanel.updateModified(isModified());
     }
 
     /**
@@ -641,8 +647,13 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
                 if (releaseFile()) {
                     if (fileApi instanceof BinEdFile) {
                         ((BinEdFile) fileApi).reloadFile();
+                    } else {
+                        BinaryData contentData = codeArea.getContentData();
+                        if (contentData instanceof ContentBinaryData) {
+                            ((ContentBinaryData) contentData).clearCache();
+                            codeArea.repaint();
+                        }
                     }
-                    // TODO else
                 }
             }
         };
@@ -961,6 +972,7 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
         undoHandler.addUndoUpdateListener(new BinaryDataUndoUpdateListener() {
             @Override
             public void undoCommandPositionChanged() {
+                toolbarPanel.updateUndoState();
                 codeArea.repaint();
                 updateCurrentDocumentSize();
                 notifyModified();
@@ -968,10 +980,13 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
 
             @Override
             public void undoCommandAdded(@Nonnull final BinaryDataCommand command) {
+                toolbarPanel.updateUndoState();
                 updateCurrentDocumentSize();
                 notifyModified();
             }
         });
+
+        toolbarPanel.setUndoHandler(undoHandler);
     }
 
     @Nullable
@@ -985,13 +1000,6 @@ public class BinEdComponentPanel extends javax.swing.JPanel {
         documentOriginalSize = codeArea.getDataSize();
         updateCurrentDocumentSize();
         updateCurrentMemoryMode();
-
-        // Autodetect encoding using IDE mechanism
-//        final Charset charset = Charset.forName(FileEncodingQuery.getEncoding(dataObject.getPrimaryFile()).name());
-//        if (charsetChangeListener != null) {
-//            charsetChangeListener.charsetChanged();
-//        }
-//        codeArea.setCharset(charset);
     }
 
     public interface CharsetChangeListener {
