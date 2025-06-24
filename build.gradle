@@ -73,7 +73,7 @@ compileJava.options.sourcepath = sourceSets.main.resources.sourceDirectories
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 def configureExec(task) {
-    task.main = mainClass
+    task.mainClass = mainClass
     task.classpath = sourceSets.main.runtimeClasspath
     if (hasProperty('appArgs')) {
         task.args appArgs
@@ -86,10 +86,9 @@ tasks.withType(JavaCompile) {
         options.fork = true
         if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
             if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
-                options.bootstrapClasspath = files("${System.properties['java.home']}/lib/rt.jar", "$File.pathSeparator${System.properties['java.home']}/jre/lib/jsse.jar")
+                options.bootstrapClasspath = files("${System.properties['java.home']}/lib/rt.jar", "${System.properties['java.home']}/jre/lib/jsse.jar")
             } else {
-                options.bootClasspath = "${System.properties['java.home']}/lib/rt.jar"
-                options.bootClasspath += "$File.pathSeparator${System.properties['java.home']}/jre/lib/jsse.jar"
+                options.bootClasspath = "${System.properties['java.home']}/lib/rt.jar$File.pathSeparator${System.properties['java.home']}/jre/lib/jsse.jar"
             }
         }
     }
@@ -101,7 +100,7 @@ if (!gradle.startParameter.taskNames.any {it.endsWith("test")}) {
 }
 
 task testJar(type: Jar, dependsOn: testClasses) {
-    classifier "tests"
+    archiveClassifier = 'tests'
     if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
     	archiveBaseName = "test-${project.archivesBaseName}"
     } else {
@@ -142,7 +141,7 @@ javadoc {
 }
 
 task javadocJar (type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
     from javadoc.destinationDir
 }
 
@@ -156,7 +155,7 @@ jar.manifest {
 }
 
 task nbmFile (type: Jar, dependsOn: tasks.nbm) {
-    classifier = 'nbm'
+    archiveClassifier = 'nbm'
 //    from tasks.nbm.outputFile
 }
 
@@ -283,7 +282,7 @@ dependencies {
 
 task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
     duplicatesStrategy = 'exclude'
-    classifier = 'sources'
+    archiveClassifier = 'sources'
     from sourceSets.main.allSource
 }
 
@@ -318,13 +317,13 @@ publishing {
         maven(MavenPublication) {
             from components.java
             artifact sourcesJar {
-                classifier 'sources'
+                archiveClassifier = 'sources'
             }
             artifact (javadocJar) {
-                classifier 'javadoc'
+                classifier = 'javadoc'
             }
             artifact (nbmFile) {
-                classifier 'nbm'
+                classifier = 'nbm'
                 extension = 'nbm'
             }
 
