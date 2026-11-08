@@ -38,6 +38,27 @@ Build command: "gradle build nbm"
 
 Current deployment version is built with Java 8 and Gradle 4.6. 
 
+Building is currently broken as it requires dependencies deployed in local Maven repository from various repositories:
+
+You can try to run following commands. Start at parent directory to "bined" repo directory.
+
+    git clone https://github.com/exbin/exbin-auxiliary-java.git
+    cd exbin-auxiliary-java
+    gradlew build publish
+    cd ..
+    git clone https://github.com/exbin/bined-lib-java.git
+    cd bined-lib-java
+    gradlew build publish
+    cd ..
+    git clone https://github.com/exbin/jaguif.git
+    cd jaguif
+    gradlew build publish
+    cd .. 
+    git clone https://github.com/exbin/bined.git
+    cd bined
+    gradlew build publish
+    cd .. 
+
 License
 -------
 

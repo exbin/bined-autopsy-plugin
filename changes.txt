@@ -1,2 +1,12 @@
+0.2.1
+- Added convert data action
+- Added support for bookmarks
+- Added clipboard content tool
+- Added drag&drop content tool
+- Added support for basic macro
+- Added icon set support
+- Added copy as / paste from dialogs
+- Added basic regex search support and search progress bar
+
 0.2.0 (2023-03-08)
 - Initial release

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,15 @@
  */
 package org.exbin.bined.autopsy;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
 import org.openide.loaders.DataObject;
 import org.openide.text.DataEditorSupport;
 import org.openide.util.Lookup;
 
 /**
  * BinEd editor support.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 public class BinEdEditorSupport extends DataEditorSupport {
 
     public BinEdEditorSupport(DataObject obj, Env env) {

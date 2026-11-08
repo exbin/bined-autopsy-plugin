@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package org.exbin.bined.autopsy;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionRegistration;
 import org.openide.loaders.DataObject;
@@ -29,13 +29,11 @@ import org.openide.windows.WindowManager;
 
 /**
  * Open file in binary editor action.
- *
- * @author ExBin Project (https://exbin.org)
  */
 @ActionID(category = "File", id = "org.exbin.bined.OpenAsBinaryAction")
 @ActionRegistration(displayName = "#CTL_OpenAsBinaryAction")
 @NbBundle.Messages("CTL_OpenAsBinaryAction=Open as Binary")
-@ParametersAreNonnullByDefault
+@NullMarked
 public final class OpenAsBinaryAction implements ActionListener {
 
     public OpenAsBinaryAction() {

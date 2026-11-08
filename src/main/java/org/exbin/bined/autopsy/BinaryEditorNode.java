@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,14 @@
  */
 package org.exbin.bined.autopsy;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 
 /**
  * Binary editor node.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 public class BinaryEditorNode extends AbstractNode {
 
     private final BinaryEditorTopComponent editorTopComponent;

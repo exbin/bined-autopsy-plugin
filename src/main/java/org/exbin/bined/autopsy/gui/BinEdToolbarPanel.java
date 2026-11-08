@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,90 +17,88 @@ package org.exbin.bined.autopsy.gui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
+import org.exbin.auxiliary.dropdownbutton.DropDownButton;
 import org.exbin.bined.CodeType;
-import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
-import org.exbin.bined.operation.undo.BinaryDataUndoHandler;
-import org.exbin.bined.swing.extended.ExtCodeArea;
-import org.exbin.framework.bined.preferences.BinaryEditorPreferences;
-import org.exbin.framework.action.gui.DropDownButton;
-import org.exbin.framework.utils.LanguageUtils;
+import org.exbin.bined.operation.command.BinaryDataUndoRedo;
+import org.exbin.jaguif.App;
+import org.exbin.jaguif.language.api.LanguageModuleApi;
+import org.exbin.jaguif.options.api.OptionsStorage;
+import org.exbin.bined.jaguif.viewer.settings.CodeAreaOptions;
 
 /**
  * Binary editor toolbar panel.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 public class BinEdToolbarPanel extends javax.swing.JPanel {
 
-    private final java.util.ResourceBundle resourceBundle = LanguageUtils.getResourceBundleByClass(BinEdToolbarPanel.class);
+    protected final java.util.ResourceBundle componentResourceBundle;
+    protected final java.util.ResourceBundle viewerResourceBundle;
+    protected final java.util.ResourceBundle optionsSettingsResourceBundle;
+    protected final java.util.ResourceBundle onlineHelpResourceBundle;
+    protected final java.util.ResourceBundle operationUndoResourceBundle;
 
-    private final BinaryEditorPreferences preferences;
-    private final ExtCodeArea codeArea;
+    protected BinaryDataUndoRedo undoRedo = null;
+    protected @Nullable Control control;
 
-    private BinaryDataUndoHandler undoHandler = null;
-    private final ActionListener refreshAction;
-    private final ActionListener goToPositionAction;
-    private final AbstractAction optionsAction;
-    private final AbstractAction onlineHelpAction;
+    protected final AbstractAction cycleCodeTypesAction;
+    protected final JRadioButtonMenuItem binaryCodeTypeAction;
+    protected final JRadioButtonMenuItem octalCodeTypeAction;
+    protected final JRadioButtonMenuItem decimalCodeTypeAction;
+    protected final JRadioButtonMenuItem hexadecimalCodeTypeAction;
+    protected final ButtonGroup codeTypeButtonGroup;
+    protected DropDownButton codeTypeDropDown;
 
-    private final AbstractAction cycleCodeTypesAction;
-    private final JRadioButtonMenuItem binaryCodeTypeAction;
-    private final JRadioButtonMenuItem octalCodeTypeAction;
-    private final JRadioButtonMenuItem decimalCodeTypeAction;
-    private final JRadioButtonMenuItem hexadecimalCodeTypeAction;
-    private final ButtonGroup codeTypeButtonGroup;
-    private DropDownButton codeTypeDropDown;
+    protected JButton saveButton = null;
+    protected JButton undoEditButton = null;
+    protected JButton redoEditButton = null;
 
-    private JButton saveButton = null;
-    private JButton undoEditButton = null;
-    private JButton redoEditButton = null;
-
-    public BinEdToolbarPanel(BinaryEditorPreferences preferences, ExtCodeArea codeArea, ActionListener refreshAction, ActionListener goToPositionAction, AbstractAction optionsAction, AbstractAction onlineHelpAction) {
-        this.preferences = preferences;
-        this.codeArea = codeArea;
-        this.refreshAction = refreshAction;
-        this.goToPositionAction = goToPositionAction;
-        this.optionsAction = optionsAction;
-        this.onlineHelpAction = onlineHelpAction;
+    public BinEdToolbarPanel() {
+        LanguageModuleApi languageModule = App.getModule(LanguageModuleApi.class);
+        componentResourceBundle = languageModule.getBundle(org.exbin.bined.jaguif.component.BinedComponentModule.class);
+        viewerResourceBundle = languageModule.getBundle(org.exbin.bined.jaguif.viewer.BinedViewerModule.class);
+        optionsSettingsResourceBundle = languageModule.getBundle(org.exbin.jaguif.options.settings.OptionsSettingsModule.class);
+        onlineHelpResourceBundle = languageModule.getBundle(org.exbin.jaguif.help.online.action.OnlineHelpAction.class);
+        operationUndoResourceBundle = languageModule.getBundle(org.exbin.jaguif.operation.undo.OperationUndoModule.class);
 
         codeTypeButtonGroup = new ButtonGroup();
-        binaryCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.binary")) {
+        binaryCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(viewerResourceBundle.getString("binaryCodeTypeAction.text")) {
             @Override
             public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.BINARY);
+                control.setCodeType(CodeType.BINARY);
                 updateCycleButtonState();
             }
         });
         codeTypeButtonGroup.add(binaryCodeTypeAction);
-        octalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.octal")) {
+        octalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(viewerResourceBundle.getString("octalCodeTypeAction.text")) {
             @Override
             public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.OCTAL);
+                control.setCodeType(CodeType.OCTAL);
                 updateCycleButtonState();
             }
         });
         codeTypeButtonGroup.add(octalCodeTypeAction);
-        decimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.decimal")) {
+        decimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(viewerResourceBundle.getString("decimalCodeTypeAction.text")) {
             @Override
             public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.DECIMAL);
+                control.setCodeType(CodeType.DECIMAL);
                 updateCycleButtonState();
             }
         });
         codeTypeButtonGroup.add(decimalCodeTypeAction);
-        hexadecimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(resourceBundle.getString("codeType.hexadecimal")) {
+        hexadecimalCodeTypeAction = new JRadioButtonMenuItem(new AbstractAction(viewerResourceBundle.getString("hexadecimalCodeTypeAction.text")) {
             @Override
             public void actionPerformed(ActionEvent e) {
-                codeArea.setCodeType(CodeType.HEXADECIMAL);
+                control.setCodeType(CodeType.HEXADECIMAL);
                 updateCycleButtonState();
             }
         });
@@ -108,10 +106,10 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         cycleCodeTypesAction = new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int codeTypePos = codeArea.getCodeType().ordinal();
+                int codeTypePos = control.getCodeType().ordinal();
                 CodeType[] values = CodeType.values();
                 CodeType next = codeTypePos + 1 >= values.length ? values[0] : values[codeTypePos + 1];
-                codeArea.setCodeType(next);
+                control.setCodeType(next);
                 updateCycleButtonState();
             }
         };
@@ -121,32 +119,49 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
     }
 
     private void init() {
-        cycleCodeTypesAction.putValue(Action.SHORT_DESCRIPTION, resourceBundle.getString("cycleCodeTypesAction.text"));
+        cycleCodeTypesAction.putValue(Action.SHORT_DESCRIPTION, viewerResourceBundle.getString("cycleCodeTypesAction.text"));
         JPopupMenu cycleCodeTypesPopupMenu = new JPopupMenu();
         cycleCodeTypesPopupMenu.add(binaryCodeTypeAction);
         cycleCodeTypesPopupMenu.add(octalCodeTypeAction);
         cycleCodeTypesPopupMenu.add(decimalCodeTypeAction);
         cycleCodeTypesPopupMenu.add(hexadecimalCodeTypeAction);
         codeTypeDropDown = new DropDownButton(cycleCodeTypesAction, cycleCodeTypesPopupMenu);
-        updateCycleButtonState();
-        codeColorizationToggleButton.setSelected(((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).isNonAsciiHighlightingEnabled());
         controlToolBar.add(codeTypeDropDown, 0);
 
         JButton optionsButton = new JButton();
-        optionsButton.setAction(optionsAction);
-        optionsButton.setToolTipText(resourceBundle.getString("optionsButton.toolTipText"));
-        optionsButton.setIcon(new ImageIcon(getClass().getResource("/org/exbin/framework/options/gui/resources/icons/Preferences16.gif")));
+        optionsButton.setAction(new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                control.openSettings();
+            }
+        });
+        optionsButton.setToolTipText(optionsSettingsResourceBundle.getString("settingsAction.text"));
+        optionsButton.setIcon(new ImageIcon(getClass().getResource(optionsSettingsResourceBundle.getString("settingsAction.smallIcon"))));
         controlToolBar.add(optionsButton);
 
         JButton onlineHelpButton = new JButton();
-        onlineHelpButton.setAction(onlineHelpAction);
-        onlineHelpButton.setToolTipText(resourceBundle.getString("onlineHelpButton.toolTipText"));
-        onlineHelpButton.setIcon(new ImageIcon(getClass().getResource("/org/exbin/framework/bined/resources/icons/open_icon_library/icons/png/16x16/actions/help.png")));
+        onlineHelpButton.setAction(new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                control.onlineHelp();
+            }
+        });
+        onlineHelpButton.setToolTipText(onlineHelpResourceBundle.getString("onlineHelpAction.text"));
+        onlineHelpButton.setIcon(new ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/help.png")));
         controlToolBar.add(onlineHelpButton);
     }
 
+    public void setTargetComponent(JComponent targetComponent) {
+        // controlToolBar.setTargetComponent(targetComponent);
+    }
+
+    public void setCodeAreaControl(Control codeAreaControl) {
+        this.control = codeAreaControl;
+        updateNonprintables();
+        updateCodeColorization();
+        updateCycleButtonState();
+    }
+
     private void updateCycleButtonState() {
-        CodeType codeType = codeArea.getCodeType();
+        CodeType codeType = control.getCodeType();
         codeTypeDropDown.setActionText(codeType.name().substring(0, 3));
         switch (codeType) {
             case BINARY: {
@@ -178,23 +193,27 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
 
     public void applyFromCodeArea() {
         updateCycleButtonState();
-        updateUnprintables();
+        updateNonprintables();
     }
 
-    public void loadFromPreferences() {
-        codeArea.setCodeType(preferences.getCodeAreaPreferences().getCodeType());
+    public void loadFromOptions(OptionsStorage options) {
+        control.setCodeType(new CodeAreaOptions(options).getCodeType());
         updateCycleButtonState();
-        updateUnprintables();
+        updateNonprintables();
     }
 
-    public void updateUnprintables() {
-        showUnprintablesToggleButton.setSelected(codeArea.isShowUnprintables());
+    public void updateNonprintables() {
+        showNonprintablesToggleButton.setSelected(control.isShowNonprintables());
+    }
+
+    public void updateCodeColorization() {
+        codeColorizationToggleButton.setSelected(control.isCodeColorization());
     }
 
     public void updateUndoState() {
-        if (undoHandler != null) {
-            undoEditButton.setEnabled(undoHandler.canUndo());
-            redoEditButton.setEnabled(undoHandler.canRedo());
+        if (undoRedo != null) {
+            undoEditButton.setEnabled(undoRedo.canUndo());
+            redoEditButton.setEnabled(undoRedo.canRedo());
         }
     }
 
@@ -204,16 +223,15 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         }
     }
 
-    public void setUndoHandler(BinaryDataUndoHandler undoHandler) {
-        this.undoHandler = undoHandler;
+    public void setUndoHandler(BinaryDataUndoRedo undoRedo) {
+        this.undoRedo = undoRedo;
 
         undoEditButton = new JButton();
-        undoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/edit-undo.png")));
-        undoEditButton.setToolTipText("Undo last operation");
+        undoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(operationUndoResourceBundle.getString("editUndoAction.smallIcon"))));
+        undoEditButton.setToolTipText(operationUndoResourceBundle.getString("editUndoAction.text"));
         undoEditButton.addActionListener((evt) -> {
             try {
-                undoHandler.performUndo();
-                codeArea.repaint();
+                undoRedo.performUndo();
                 updateUndoState();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -221,12 +239,11 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         });
 
         redoEditButton = new JButton();
-        redoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/edit-redo.png")));
-        redoEditButton.setToolTipText("Redo last undid operation");
+        redoEditButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(operationUndoResourceBundle.getString("editRedoAction.smallIcon"))));
+        redoEditButton.setToolTipText(operationUndoResourceBundle.getString("editRedoAction.text"));
         redoEditButton.addActionListener((evt) -> {
             try {
-                undoHandler.performRedo();
-                codeArea.repaint();
+                undoRedo.performRedo();
                 updateUndoState();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -265,7 +282,7 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         refreshButton = new javax.swing.JButton();
         goToButton = new javax.swing.JButton();
         separator1 = new javax.swing.JToolBar.Separator();
-        showUnprintablesToggleButton = new javax.swing.JToggleButton();
+        showNonprintablesToggleButton = new javax.swing.JToggleButton();
         codeColorizationToggleButton = new javax.swing.JToggleButton();
         separator2 = new javax.swing.JToolBar.Separator();
 
@@ -273,7 +290,7 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         controlToolBar.setRollover(true);
 
         refreshButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/arrow_refresh.png"))); // NOI18N
-        refreshButton.setToolTipText(resourceBundle.getString("refreshButton.toolTipText"));
+        refreshButton.setToolTipText("Refresh content");
         refreshButton.setFocusable(false);
         refreshButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         refreshButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -285,7 +302,7 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         controlToolBar.add(refreshButton);
 
         goToButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/bullet_go.png"))); // NOI18N
-        goToButton.setToolTipText(resourceBundle.getString("goToButton.toolTipText"));
+        goToButton.setToolTipText(componentResourceBundle.getString("goToPositionAction.shortDescription"));
         goToButton.setFocusable(false);
         goToButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         goToButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -297,17 +314,17 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         controlToolBar.add(goToButton);
         controlToolBar.add(separator1);
 
-        showUnprintablesToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/insert-pilcrow.png"))); // NOI18N
-        showUnprintablesToggleButton.setToolTipText(resourceBundle.getString("showUnprintablesToggleButton.toolTipText")); // NOI18N
-        showUnprintablesToggleButton.addActionListener(new java.awt.event.ActionListener() {
+        showNonprintablesToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource(componentResourceBundle.getString("toggleNonprintablesAction.smallIcon"))));
+        showNonprintablesToggleButton.setToolTipText(componentResourceBundle.getString("viewNonprintablesAction.shortDescription"));
+        showNonprintablesToggleButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                showUnprintablesToggleButtonActionPerformed(evt);
+                showNonprintablesToggleButtonActionPerformed(evt);
             }
         });
-        controlToolBar.add(showUnprintablesToggleButton);
+        controlToolBar.add(showNonprintablesToggleButton);
 
-        codeColorizationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/color_swatch.png"))); // NOI18N
-        codeColorizationToggleButton.setToolTipText(resourceBundle.getString("codeColorizationToggleButton.toolTipText"));
+        codeColorizationToggleButton.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/exbin/bined/autopsy/resources/icons/color_swatch.png")));
+        codeColorizationToggleButton.setToolTipText("Toggle colorization of the hex codes");
         codeColorizationToggleButton.setFocusable(false);
         codeColorizationToggleButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         codeColorizationToggleButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
@@ -325,7 +342,7 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(controlToolBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 253, Short.MAX_VALUE))
+                .addGap(0, 285, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -335,21 +352,20 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 
-    private void showUnprintablesToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showUnprintablesToggleButtonActionPerformed
-        codeArea.setShowUnprintables(showUnprintablesToggleButton.isSelected());
-    }//GEN-LAST:event_showUnprintablesToggleButtonActionPerformed
+    private void showNonprintablesToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showNonprintablesToggleButtonActionPerformed
+        control.setShowNonprintables(showNonprintablesToggleButton.isSelected());
+    }//GEN-LAST:event_showNonprintablesToggleButtonActionPerformed
 
     private void refreshButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refreshButtonActionPerformed
-        refreshAction.actionPerformed(evt);
+        control.refresh();
     }//GEN-LAST:event_refreshButtonActionPerformed
 
     private void codeColorizationToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_codeColorizationToggleButtonActionPerformed
-        ((ExtendedHighlightNonAsciiCodeAreaPainter) codeArea.getPainter()).setNonAsciiHighlightingEnabled(codeColorizationToggleButton.isSelected());
-        codeArea.repaint();
+        control.setCodeColorization(codeColorizationToggleButton.isSelected());
     }//GEN-LAST:event_codeColorizationToggleButtonActionPerformed
 
     private void goToButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_goToButtonActionPerformed
-        goToPositionAction.actionPerformed(evt);
+        control.goToPosition();
     }//GEN-LAST:event_goToButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -359,7 +375,32 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
     private javax.swing.JButton refreshButton;
     private javax.swing.JToolBar.Separator separator1;
     private javax.swing.JToolBar.Separator separator2;
-    private javax.swing.JToggleButton showUnprintablesToggleButton;
+    private javax.swing.JToggleButton showNonprintablesToggleButton;
     // End of variables declaration//GEN-END:variables
 
+    @NullMarked
+    public interface Control {
+
+        CodeType getCodeType();
+
+        void setCodeType(CodeType codeType);
+
+        boolean isShowNonprintables();
+
+        void setShowNonprintables(boolean showNonprintables);
+
+        boolean isCodeColorization();
+
+        void setCodeColorization(boolean codeColorization);
+
+        void repaint();
+        
+        void openSettings();
+        
+        void onlineHelp();
+
+        void refresh();
+
+        void goToPosition();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,17 +18,16 @@ package org.exbin.bined.autopsy.contentviewer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
-import org.exbin.auxiliary.paged_data.BinaryData;
-import org.exbin.auxiliary.paged_data.ByteArrayEditableData;
+import org.jspecify.annotations.NullMarked;
+import org.exbin.auxiliary.binary_data.BinaryData;
+import org.exbin.auxiliary.binary_data.array.ByteArrayEditableData;
 import org.sleuthkit.datamodel.Content;
 import org.sleuthkit.datamodel.TskCoreException;
 
 /**
  * Content binary data.
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 public class ContentBinaryData implements BinaryData {
 
     public static final int PAGE_SIZE = 2048;
@@ -83,13 +82,11 @@ public class ContentBinaryData implements BinaryData {
         return page.data[pageOffset];
     }
 
-    @Nonnull
     @Override
     public BinaryData copy() {
         return copy(0, getDataSize());
     }
 
-    @Nonnull
     @Override
     public BinaryData copy(long startFrom, long length) {
         ByteArrayEditableData result = new ByteArrayEditableData();
@@ -201,7 +198,6 @@ public class ContentBinaryData implements BinaryData {
         throw new UnsupportedOperationException("Save to stream is not supported");
     }
 
-    @Nonnull
     @Override
     public InputStream getDataInputStream() {
         throw new UnsupportedOperationException("Data input stream is not supported");
@@ -211,7 +207,6 @@ public class ContentBinaryData implements BinaryData {
     public void dispose() {
     }
 
-    @Nonnull
     private static IndexOutOfBoundsException createIndexOutOfBoundsException() {
         return new IndexOutOfBoundsException("Requested data out of bounds");
     }
@@ -232,6 +227,7 @@ public class ContentBinaryData implements BinaryData {
         }
     }
 
+    @NullMarked
     public static class TskReadException extends RuntimeException {
 
         private final long position;

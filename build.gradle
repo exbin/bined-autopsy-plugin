@@ -31,7 +31,7 @@ ext.scriptFile = { String fileName ->
     return new File(new File(rootDir, 'gradle'), fileName)
 }
 
-version = '0.2.0-SNAPSHOT'
+version = '0.2.1-SNAPSHOT'
 group = 'org.exbin.bined.autopsy'
 
 sourceCompatibility = '1.8'
@@ -40,8 +40,10 @@ targetCompatibility = sourceCompatibility
 ext {
     //    netbeansVersion = 'dev-SNAPSHOT'
     netbeansVersion = 'RELEASE90'
-    binedVersion = '0.2.1-SNAPSHOT'
-    pagedDataVersion = '0.2.1-SNAPSHOT'
+    binedLibraryVersion = '0.3.0-SNAPSHOT'
+    binedAppLibraryVersion = '0.3.0-SNAPSHOT'
+    jaguifVersion = '0.3.0-SNAPSHOT'
+    auxiliaryVersion = '0.3.0-SNAPSHOT'
     repositoryName = "bined-autopsy-plugin"
     nbmVersion = version.endsWith('-SNAPSHOT') ? version.substring(0, version.length() - 9) : version
     homePageUrl = 'https://bined.exbin.org/autopsy-plugin'
@@ -59,7 +61,7 @@ repositories {
     maven { url 'https://netbeans.apidesign.org/maven2' }
     maven { url 'https://repo.gradle.org/gradle/libs-releases-local' }
     flatDir {
-        dirs "lib"
+        dirs("lib", "plugins")
     }
 }
 
@@ -100,7 +102,7 @@ if (!gradle.startParameter.taskNames.any {it.endsWith("test")}) {
 }
 
 task testJar(type: Jar, dependsOn: testClasses) {
-    archiveClassifier = 'tests'
+    classifier = 'tests'
     if (VersionNumber.parse(gradle.gradleVersion) >= VersionNumber.parse('5.0')) {
     	archiveBaseName = "test-${project.archivesBaseName}"
     } else {
@@ -141,7 +143,7 @@ javadoc {
 }
 
 task javadocJar (type: Jar, dependsOn: javadoc) {
-    archiveClassifier = 'javadoc'
+    classifier = 'javadoc'
     from javadoc.destinationDir
 }
 
@@ -155,7 +157,7 @@ jar.manifest {
 }
 
 task nbmFile (type: Jar, dependsOn: tasks.nbm) {
-    archiveClassifier = 'nbm'
+    classifier = 'nbm'
 //    from tasks.nbm.outputFile
 }
 
@@ -222,13 +224,19 @@ def netbeansApi = { String moduleName ->
 }
 
 def binedLibrary = { String libName ->
-    return ":${libName}-${binedVersion}"
-//    return "org.exbin.bined:${libName}:${binedVersion}"
+    return (binedLibraryVersion.endsWith('-SNAPSHOTX')) ? ":${libName}-${binedLibraryVersion}" : "org.exbin.bined:${libName}:${binedLibraryVersion}"
 }
 
-def pagedDataLibrary = { String libName ->
-    return ":${libName}-${pagedDataVersion}"
-//    return "org.exbin.auxiliary:${libName}:${pagedDataVersion}"
+def binedAppLibrary = { String libName ->
+    return (binedAppLibraryVersion.endsWith('-SNAPSHOTX')) ? ":${libName}-${binedAppLibraryVersion}" : "org.exbin.bined.jaguif:${libName}:${binedAppLibraryVersion}"
+}
+
+def jaguifLibrary = { String libName ->
+    return (jaguifVersion.endsWith('-SNAPSHOTX')) ? ":${libName}-${jaguifVersion}" : "org.exbin.jaguif:${libName}:${jaguifVersion}"
+}
+
+def auxiliaryLibrary = { String libName ->
+    return (auxiliaryVersion.endsWith('-SNAPSHOTX')) ? ":${libName}-${auxiliaryVersion}" : "org.exbin.auxiliary:${libName}:${auxiliaryVersion}"
 }
 
 dependencies {
@@ -259,19 +267,117 @@ dependencies {
     providedCompile netbeansApi('org-openide-util-ui')
     providedCompile netbeansApi('org-openide-windows')
 
-    implementation binedLibrary("bined-core")
-    implementation binedLibrary("bined-extended")
-    implementation binedLibrary("bined-highlight-swing")
-    implementation binedLibrary("bined-operation")
-    implementation binedLibrary("bined-operation-swing")
-    implementation binedLibrary("bined-swing")
-    implementation binedLibrary("bined-swing-extended")
-    implementation pagedDataLibrary('paged_data')
-    implementation pagedDataLibrary('paged_data-delta')
+    implementation(jaguifLibrary("jaguif-core"))
+    implementation(jaguifLibrary("jaguif-basic"))
+    implementation(jaguifLibrary("jaguif-frame"))
+    implementation(jaguifLibrary("jaguif-ui"))
+    implementation(jaguifLibrary("jaguif-ui-api"))
+    implementation(jaguifLibrary("jaguif-ui-theme"))
+    implementation(jaguifLibrary("jaguif-ui-theme-api"))
+    implementation(jaguifLibrary("jaguif-contribution"))
+    implementation(jaguifLibrary("jaguif-contribution-api"))
+    implementation(jaguifLibrary("jaguif-context"))
+    implementation(jaguifLibrary("jaguif-context-api"))
+    implementation(jaguifLibrary("jaguif-component"))
+    implementation(jaguifLibrary("jaguif-component-api"))
+//    implementation(jaguifLibrary("jaguif-data"))
+    implementation(jaguifLibrary("jaguif-window"))
+    implementation(jaguifLibrary("jaguif-window-api"))
+    implementation(jaguifLibrary("jaguif-action"))
+    implementation(jaguifLibrary("jaguif-action-api"))
+    implementation(jaguifLibrary("jaguif-file"))
+    implementation(jaguifLibrary("jaguif-file-api"))
+    implementation(jaguifLibrary("jaguif-document"))
+    implementation(jaguifLibrary("jaguif-document-api"))
+    implementation(jaguifLibrary("jaguif-docking"))
+    implementation(jaguifLibrary("jaguif-docking-api"))
+    implementation(jaguifLibrary("jaguif-docking-multi"))
+    implementation(jaguifLibrary("jaguif-docking-multi-api"))
+    implementation(jaguifLibrary("jaguif-license"))
+    implementation(jaguifLibrary("jaguif-license-api"))
+    implementation(jaguifLibrary("jaguif-operation"))
+    implementation(jaguifLibrary("jaguif-operation-api"))
+    implementation(jaguifLibrary("jaguif-operation-undo"))
+    implementation(jaguifLibrary("jaguif-operation-undo-api"))
+    implementation(jaguifLibrary("jaguif-menu-api"))
+    implementation(jaguifLibrary("jaguif-menu"))
+    implementation(jaguifLibrary("jaguif-menu-popup"))
+    implementation(jaguifLibrary("jaguif-toolbar"))
+    implementation(jaguifLibrary("jaguif-toolbar-api"))
+    implementation(jaguifLibrary("jaguif-statusbar"))
+    implementation(jaguifLibrary("jaguif-statusbar-api"))
+    implementation(jaguifLibrary("jaguif-sidebar"))
+    implementation(jaguifLibrary("jaguif-sidebar-api"))
+    implementation(jaguifLibrary("jaguif-tabpages"))
+    implementation(jaguifLibrary("jaguif-tabpages-api"))
+    implementation(jaguifLibrary("jaguif-help"))
+    implementation(jaguifLibrary("jaguif-help-api"))
+    implementation(jaguifLibrary("jaguif-help-online"))
+    implementation(jaguifLibrary("jaguif-help-online-api"))
+    implementation(jaguifLibrary("jaguif-options"))
+    implementation(jaguifLibrary("jaguif-options-api"))
+    implementation(jaguifLibrary("jaguif-options-settings"))
+    implementation(jaguifLibrary("jaguif-options-settings-api"))
+    implementation(jaguifLibrary("jaguif-language-api"))
+    implementation(jaguifLibrary("jaguif-language"))
+    implementation(jaguifLibrary("jaguif-search"))
+    implementation(jaguifLibrary("jaguif-search-api"))
+    implementation(jaguifLibrary("jaguif-text-encoding"))
+    implementation(jaguifLibrary("jaguif-text-font"))
+    implementation(binedAppLibrary("bined-jaguif-component"))
+    implementation(binedAppLibrary("bined-jaguif-document"))
+    implementation(binedAppLibrary("bined-jaguif-viewer"))
+    implementation(binedAppLibrary("bined-jaguif-editor"))
+    implementation(binedAppLibrary("bined-jaguif-theme"))
+    implementation(binedAppLibrary("bined-jaguif-bookmarks"))
+    implementation(binedAppLibrary("bined-jaguif-compare"))
+    implementation(binedAppLibrary("bined-jaguif-inspector"))
+    implementation(binedAppLibrary("bined-jaguif-macro"))
+    implementation(binedAppLibrary("bined-jaguif-objectdata"))
+    implementation(binedAppLibrary("bined-jaguif-operation-method"))
+    implementation(binedAppLibrary("bined-jaguif-operation-code"))
+    implementation(binedAppLibrary("bined-jaguif-operation-bouncycastle"))
+    implementation(binedAppLibrary("bined-jaguif-search"))
+    implementation(binedAppLibrary("bined-jaguif-tool-content"))
 
-    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation(binedLibrary("bined-core"))
+    implementation(binedLibrary("bined-section"))
+    implementation(binedLibrary("bined-highlight-swing"))
+    implementation(binedLibrary("bined-operation"))
+    implementation(binedLibrary("bined-operation-swing"))
+    implementation(binedLibrary("bined-swing"))
+    implementation(binedLibrary("bined-swing-section"))
+    implementation(auxiliaryLibrary('binary_data'))
+    implementation(auxiliaryLibrary('binary_data-array'))
+    implementation(auxiliaryLibrary('binary_data-delta'))
+    implementation(auxiliaryLibrary("component-dropdownbutton"))
+    implementation(":jaguif-language-cs_CZ-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-de_DE-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-es_ES-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-fi_FI-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-fr_FR-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-hi_IN-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-in_ID-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-it_IT-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-ja_JP-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-ko_KR-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-pl_PL-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-pt_PT-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-ru_RU-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-sv_SE-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-vi_VN-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-zh_Hans-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-zh_Hant-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-zh_HK-0.3.0-SNAPSHOT")
+    implementation(":jaguif-language-zh_TW-0.3.0-SNAPSHOT")
+    implementation(":jaguif-iconset-material-0.3.0-SNAPSHOT")
+    implementation(":flatlaf-desktop-3.2")
 
-    testImplementation 'junit:junit:4.12.2'
+    compileOnly group: 'org.jspecify', name: 'jspecify', version: '1.0.0'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.86'
+    // implementation 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // testImplementation 'junit:junit:4.12.2'
 
     if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
         // Workaround for @javax.annotation.Generated
@@ -282,7 +388,7 @@ dependencies {
 
 task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
     duplicatesStrategy = 'exclude'
-    archiveClassifier = 'sources'
+    classifier = 'sources'
     from sourceSets.main.allSource
 }
 
@@ -317,7 +423,7 @@ publishing {
         maven(MavenPublication) {
             from components.java
             artifact sourcesJar {
-                archiveClassifier = 'sources'
+                classifier = 'sources'
             }
             artifact (javadocJar) {
                 classifier = 'javadoc'

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,24 +15,22 @@
  */
 package org.exbin.bined.autopsy;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
 import javax.swing.JComponent;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
 import org.openide.text.CloneableEditor;
-import static org.openide.windows.TopComponent.PERSISTENCE_NEVER;
+import org.openide.windows.TopComponent;
 
 /**
  * BinEd native NetBeans editor.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 @MultiViewElement.Registration(
         displayName = "#BinEdEditor.displayName",
-        mimeType = BinEdDataObject.MIME,
-        persistenceType = PERSISTENCE_NEVER,
+        mimeType = BinEdDataObject.MIME_TYPE,
+        persistenceType = TopComponent.PERSISTENCE_NEVER,
         iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
         preferredID = BinEdEditor.ID,
         position = 1

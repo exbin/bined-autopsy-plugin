@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Copyright 2011-2019 Basis Technology Corp.
  * Contact: carrier <at> sleuthkit <dot> org
@@ -24,16 +24,50 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.annotation.Nonnull;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import javax.swing.JMenuItem;
+import org.exbin.bined.CodeAreaUtils;
+import org.exbin.bined.CodeType;
 import org.exbin.bined.EditMode;
-import org.exbin.bined.autopsy.gui.BinEdComponentFileApi;
-import org.exbin.bined.autopsy.gui.BinEdComponentPanel;
-import org.exbin.bined.highlight.swing.extended.ExtendedHighlightNonAsciiCodeAreaPainter;
-import org.exbin.bined.swing.extended.ExtCodeArea;
-import org.exbin.framework.bined.FileHandlingMode;
-import org.exbin.framework.utils.LanguageUtils;
+import org.exbin.bined.autopsy.BinEdAutopsyDocking;
+import org.exbin.bined.autopsy.gui.BinEdToolbarPanel;
+import org.exbin.bined.highlight.swing.NonprintablesCodeAreaAssessor;
+import org.exbin.bined.highlight.swing.NonAsciiCodeAreaColorAssessor;
+import org.exbin.bined.jaguif.component.BinEdDataComponent;
+import org.exbin.bined.jaguif.component.BinedComponentModule;
+import org.exbin.bined.jaguif.component.gui.BinEdComponentPanel;
+import org.exbin.bined.jaguif.document.BinEdFileManager;
+import org.exbin.bined.jaguif.document.BinedDocumentModule;
+import org.exbin.bined.jaguif.viewer.BinedViewerModule;
+import org.exbin.bined.jaguif.viewer.settings.BinaryEncodingSettingsApplier;
+import org.exbin.bined.jaguif.viewer.status.gui.BinaryDataSizeComponent;
+import org.exbin.bined.swing.CodeAreaSwingUtils;
+import org.exbin.bined.swing.capability.ColorAssessorPainterCapable;
+import org.exbin.bined.swing.section.SectCodeArea;
+import org.exbin.bined.swing.section.SectionCodeAreaPainter;
+import org.exbin.jaguif.App;
+import org.exbin.jaguif.context.ContextStateManager;
+import org.exbin.jaguif.context.api.ContextStateManagement;
+import org.exbin.jaguif.context.api.ContextChangeListener;
+import org.exbin.jaguif.context.api.ContextComponent;
+import org.exbin.jaguif.context.api.ContextModuleApi;
+import org.exbin.jaguif.context.api.ContextMonitoringRegistration;
+import org.exbin.jaguif.context.api.ContextMonitoringManagement;
+import org.exbin.jaguif.context.api.StateUpdateType;
+import org.exbin.jaguif.docking.api.ContextDocking;
+import org.exbin.jaguif.document.api.ContextDocument;
+import org.exbin.jaguif.frame.api.FrameModuleApi;
+import org.exbin.jaguif.language.api.LanguageModuleApi;
+import org.exbin.jaguif.options.api.OptionsModuleApi;
+import org.exbin.jaguif.options.settings.api.OptionsSettingsModuleApi;
+import org.exbin.jaguif.search.api.ContextSearch;
+import org.exbin.jaguif.statusbar.api.StatusBar;
+import org.exbin.jaguif.statusbar.api.StatusBarComponent;
+import org.exbin.jaguif.statusbar.api.StatusBarModuleApi;
+import org.exbin.jaguif.text.encoding.ContextEncoding;
+import org.exbin.jaguif.utils.DesktopUtils;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.openide.nodes.Node;
 import org.openide.util.NbBundle.Messages;
 import org.openide.util.lookup.ServiceProvider;
@@ -44,53 +78,40 @@ import org.sleuthkit.datamodel.Content;
 
 /**
  * Binary view of file contents.
- *
- * @author ExBin Project (https://exbin.org)
  */
 @SuppressWarnings("PMD.SingularField") // UI widgets cause lots of false positives
 @ServiceProvider(service = DataContentViewer.class, position = 1)
+@NullMarked
 public class DataContentViewerBinary extends javax.swing.JPanel implements DataContentViewer {
 
-    private final java.util.ResourceBundle resourceBundle = LanguageUtils.getResourceBundleByClass(DataContentViewerBinary.class);
+    protected final java.util.ResourceBundle resourceBundle = App.getModule(LanguageModuleApi.class).getBundle(DataContentViewerBinary.class);
 
-    private Content dataSource;
-    private BinEdComponentPanel componentPanel = new BinEdComponentPanel();
+    protected Content dataSource;
+    protected final BinEdComponentPanel componentPanel;
+    protected final BinEdDataComponent dataComponent;
+    protected BinEdToolbarPanel toolbarPanel = new BinEdToolbarPanel();
+    protected ContextStateManagement statusContextManager;
+    protected ContextChangeListener contextChangeListener;
+    protected StatusBar statusBar;
 
-    private Mode mode = Mode.NO_DATA;
+    protected Mode mode = Mode.NO_DATA;
 
-    private static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
+    protected static final Logger logger = Logger.getLogger(DataContentViewerBinary.class.getName());
 
     public DataContentViewerBinary() {
-        initComponents();
-        init();
-        this.resetComponent();
-    }
+        componentPanel = new BinEdComponentPanel();
+        dataComponent = new BinEdDataComponent(componentPanel);
+        BinedDocumentModule binedDocumentModule = App.getModule(BinedDocumentModule.class);
+        BinedViewerModule binedViewerModule = App.getModule(BinedViewerModule.class);
+        BinEdFileManager fileManager = binedDocumentModule.getFileManager();
+        fileManager.initDataComponent(dataComponent);
 
-    private void init() {
-        componentPanel.setFileApi(new BinEdComponentFileApi() {
-            @Override
-            public boolean isSaveSupported() {
-                return false;
-            }
+        OptionsModuleApi optionsModule = App.getModule(OptionsModuleApi.class);
 
-            @Override
-            public void saveDocument() {
-                throw new IllegalStateException();
-            }
-
-            @Override
-            public void switchFileHandlingMode(FileHandlingMode newHandlingMode) {
-                // ignore
-            }
-
-            @Override
-            public void closeData() {
-                // ignore
-            }
-        });
-        ExtCodeArea codeArea = componentPanel.getCodeArea();
+        SectCodeArea codeArea = (SectCodeArea) dataComponent.getCodeArea();
         codeArea.setEditMode(EditMode.READ_ONLY);
-        codeArea.setPainter(new ExtendedHighlightNonAsciiCodeAreaPainter(codeArea) {
+        SectionCodeAreaPainter oldPainter = (SectionCodeAreaPainter) codeArea.getPainter();
+        SectionCodeAreaPainter painter = new SectionCodeAreaPainter(codeArea) {
             @Override
             public void paintComponent(Graphics g) {
                 try {
@@ -113,8 +134,125 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                     }
                 }
             }
+        };
+        painter.setColorAssessor(oldPainter.getColorAssessor());
+        painter.setCharAssessor(oldPainter.getCharAssessor());
+        codeArea.setPainter(painter);
+
+        toolbarPanel.setTargetComponent(componentPanel);
+        toolbarPanel.setCodeAreaControl(new BinEdToolbarPanel.Control() {
+            @Override
+            public CodeType getCodeType() {
+                return codeArea.getCodeType();
+            }
+
+            @Override
+            public void setCodeType(CodeType codeType) {
+                codeArea.setCodeType(codeType);
+            }
+
+            @Override
+            public boolean isShowNonprintables() {
+                ColorAssessorPainterCapable painter = (ColorAssessorPainterCapable) codeArea.getPainter();
+                NonprintablesCodeAreaAssessor nonprintablesCodeAreaAssessor = CodeAreaSwingUtils.findColorAssessor(painter, NonprintablesCodeAreaAssessor.class);
+                return CodeAreaUtils.requireNonNull(nonprintablesCodeAreaAssessor).isShowNonprintables();
+            }
+
+            @Override
+            public void setShowNonprintables(boolean showNonprintables) {
+                ColorAssessorPainterCapable painter = (ColorAssessorPainterCapable) codeArea.getPainter();
+                NonprintablesCodeAreaAssessor nonprintablesCodeAreaAssessor = CodeAreaSwingUtils.findColorAssessor(painter, NonprintablesCodeAreaAssessor.class);
+                CodeAreaUtils.requireNonNull(nonprintablesCodeAreaAssessor).setShowNonprintables(showNonprintables);
+            }
+
+            @Override
+            public void repaint() {
+                codeArea.repaint();
+            }
+
+            public boolean isCodeColorization() {
+                ColorAssessorPainterCapable painter = (ColorAssessorPainterCapable) codeArea.getPainter();
+                NonAsciiCodeAreaColorAssessor assessor = CodeAreaSwingUtils.findColorAssessor(painter, NonAsciiCodeAreaColorAssessor.class);
+                return CodeAreaUtils.requireNonNull(assessor).isNonAsciiHighlightingEnabled();
+            }
+
+            public void setCodeColorization(boolean codeColorization) {
+                ColorAssessorPainterCapable painter = (ColorAssessorPainterCapable) codeArea.getPainter();
+                NonAsciiCodeAreaColorAssessor assessor = CodeAreaSwingUtils.findColorAssessor(painter, NonAsciiCodeAreaColorAssessor.class);
+                CodeAreaUtils.requireNonNull(assessor).setNonAsciiHighlightingEnabled(codeColorization);
+            }
+
+            public void openSettings() {
+                throw new UnsupportedOperationException();
+            }
+
+            public void onlineHelp() {
+                LanguageModuleApi languageModuleApi = App.getModule(LanguageModuleApi.class);
+                DesktopUtils.openDesktopURL(languageModuleApi.getAppBundle().getString("online_help_url"));
+            }
+
+            public void refresh() {
+                throw new UnsupportedOperationException();
+            }
+
+            public void goToPosition() {
+                org.exbin.bined.jaguif.component.action.GoToPositionAction action = new org.exbin.bined.jaguif.component.action.GoToPositionAction();
+                action.setCodeArea(codeArea);
+                action.actionPerformed();
+            }
         });
 
+        FrameModuleApi frameModule = App.getModule(FrameModuleApi.class);
+        StatusBarModuleApi statusBarModule = App.getModule(StatusBarModuleApi.class);
+        ContextModuleApi contextModule = App.getModule(ContextModuleApi.class);
+        ContextStateManagement contextManager = frameModule.getFrameStateManager();
+        statusContextManager = contextModule.createChildStateManager(contextManager);
+        contextChangeListener = new ContextChangeListener() {
+            @Override
+            public <T> void notifyStateChanged(Class<T> stateClass, @Nullable T activeState) {
+                if (dataComponent == null) {
+                    return;
+                }
+
+                if (stateClass == ContextComponent.class && activeState != dataComponent) {
+                    return;
+                }
+
+                if (stateClass == ContextEncoding.class && activeState != dataComponent) {
+                    return;
+                }
+
+                statusContextManager.changeActiveState(stateClass, activeState);
+            }
+
+            @Override
+            public <T> void notifyStateUpdated(Class<T> stateClass, T activeState, StateUpdateType stateUpdateType) {
+                if (dataComponent == null) {
+                    return;
+                }
+
+                if (stateClass == ContextComponent.class && activeState != dataComponent) {
+                    return;
+                }
+
+                if (stateClass == ContextEncoding.class && activeState != dataComponent) {
+                    return;
+                }
+
+                statusContextManager.updateActiveState(stateClass, activeState, stateUpdateType);
+            }
+        };
+        contextManager.addChangeListener(contextChangeListener);
+        ContextMonitoringManagement statusUpdateManager = contextModule.createMonitoringManager(statusContextManager);
+        ContextMonitoringRegistration statusContextRegistrator = contextModule.createMonitoringRegistrator(statusUpdateManager, statusContextManager);
+        statusBar = statusBarModule.createStatusBar(BinedComponentModule.BINARY_STATUS_BAR_ID, statusContextRegistrator);
+
+        initComponents();
+        init();
+        this.resetComponent();
+    }
+
+    private void init() {
         ActionListener textAreaActionListener = (ActionEvent e) -> {
             JMenuItem jmi = (JMenuItem) e.getSource();
             if (jmi.equals(copyMenuItem)) {
@@ -129,6 +267,12 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         textArea.setText(resourceBundle.getString("textArea.noDataText"));
     }
 
+    public void detach() {
+        FrameModuleApi frameModule = App.getModule(FrameModuleApi.class);
+        ContextStateManagement contextManager = frameModule.getFrameStateManager();
+        contextManager.removeChangeListener(contextChangeListener);
+    }
+
     private void switchMode(Mode mode) {
         if (this.mode != mode) {
             switch (this.mode) {
@@ -137,11 +281,16 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                     break;
                 }
                 case DATA: {
+                    remove(toolbarPanel);
                     remove(componentPanel);
+                    remove(statusBar.getComponent());
+
+                    statusContextManager.changeActiveState(ContextComponent.class, null);
+                    statusContextManager.changeActiveState(ContextEncoding.class, null);
+                    statusContextManager.changeActiveState(ContextSearch.class, null);
                     break;
                 }
                 case ERROR: {
-//                    remove(toolbarPanel);
                     remove(textAreaScrollPane);
                     break;
                 }
@@ -155,10 +304,15 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
                 }
                 case DATA: {
                     add(componentPanel, BorderLayout.CENTER);
+                    add(toolbarPanel, BorderLayout.NORTH);
+                    add(statusBar.getComponent(), BorderLayout.SOUTH);
+
+                    statusContextManager.changeActiveState(ContextComponent.class, dataComponent);
+                    statusContextManager.changeActiveState(ContextEncoding.class, dataComponent);
+                    statusContextManager.changeActiveState(ContextSearch.class, dataComponent.getSearchController().orElse(null));
                     break;
                 }
                 case ERROR: {
-//                    add(toolbarPanel, BorderLayout.NORTH);
                     add(textAreaScrollPane, BorderLayout.CENTER);
                     break;
                 }
@@ -230,7 +384,7 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         }
 
         dataSource = content;
-        componentPanel.getCodeArea().setCaretPosition(0);
+        dataComponent.getCodeArea().setCaretPosition(0);
         componentPanel.setContentData(new ContentBinaryData(dataSource));
         switchMode(Mode.DATA);
     }
@@ -272,7 +426,6 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         return 1;
     }
 
-    @Nonnull
     @Override
     public Component getComponent() {
         return this;

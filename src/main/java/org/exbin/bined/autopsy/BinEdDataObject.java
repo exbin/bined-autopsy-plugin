@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.exbin.bined.autopsy;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.MIMEResolver;
 import org.openide.loaders.DataObject;
@@ -25,15 +25,13 @@ import org.openide.loaders.MultiFileLoader;
 
 /**
  * BinEd data object.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
-@MIMEResolver.ExtensionRegistration(displayName = "#BinEdDataObject.extensionDisplayName", mimeType = BinEdDataObject.MIME, extension = {BinEdDataObject.MMD_EXT})
-@DataObject.Registration(displayName = "#BinEdDataObject.displayName", mimeType = BinEdDataObject.MIME, iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png")
+@NullMarked
+@MIMEResolver.ExtensionRegistration(displayName = "#BinEdDataObject.extensionDisplayName", mimeType = BinEdDataObject.MIME_TYPE, extension = {BinEdDataObject.MMD_EXT})
+@DataObject.Registration(displayName = "#BinEdDataObject.displayName", mimeType = BinEdDataObject.MIME_TYPE, iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png")
 public class BinEdDataObject extends MultiDataObject {
 
-  public static final String MIME = "application/octet-stream"; //NOI18N
+  public static final String MIME_TYPE = "application/octet-stream"; //NOI18N
   public static final String MMD_EXT = "bin"; //NOI18N
 
   public BinEdDataObject(FileObject fo, MultiFileLoader loader) throws DataObjectExistsException {

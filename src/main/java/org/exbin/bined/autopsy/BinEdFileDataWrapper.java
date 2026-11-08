@@ -1,5 +1,5 @@
 /*
- * Copyright (C) ExBin Project
+ * Copyright (C) ExBin Project, https://exbin.org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +20,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
-import org.exbin.auxiliary.paged_data.BinaryData;
-import org.exbin.auxiliary.paged_data.ByteArrayData;
-import org.exbin.auxiliary.paged_data.EditableBinaryData;
-import org.exbin.auxiliary.paged_data.OutOfBoundsException;
-import org.exbin.auxiliary.paged_data.PagedData;
-import org.exbin.xbup.core.util.StreamUtils;
+import org.jspecify.annotations.NullMarked;
+import org.exbin.auxiliary.binary_data.BinaryData;
+import org.exbin.auxiliary.binary_data.array.ByteArrayData;
+import org.exbin.auxiliary.binary_data.EditableBinaryData;
+import org.exbin.auxiliary.binary_data.OutOfBoundsException;
+import org.exbin.auxiliary.binary_data.array.paged.ByteArrayPagedData;
+import org.exbin.auxiliary.binary_data.paged.PagedData;
+import org.exbin.bined.autopsy.utils.StreamUtils;
 import org.openide.filesystems.FileObject;
 
 /**
  * File data wrapper for netbeans with caching.
- *
- * @author ExBin Project (https://exbin.org)
  */
-@ParametersAreNonnullByDefault
+@NullMarked
 public class BinEdFileDataWrapper implements EditableBinaryData {
 
 	public static final String BROKEN_VIRTUAL_FILE = "Broken virtual file";
@@ -78,7 +76,6 @@ public class BinEdFileDataWrapper implements EditableBinaryData {
         return cachePages[usedPage].page[pageOffset];
     }
 
-    @Nonnull
     @Override
     public BinaryData copy() {
         try {
@@ -88,13 +85,12 @@ public class BinEdFileDataWrapper implements EditableBinaryData {
         }
     }
 
-    @Nonnull
     @Override
     public synchronized BinaryData copy(long startFrom, long length) {
         long pageIndex = startFrom / PAGE_SIZE;
         int pageOffset = (int) (startFrom % PAGE_SIZE);
 
-        PagedData data = new PagedData();
+        ByteArrayPagedData data = new ByteArrayPagedData();
         long dataPosition = 0;
         while (length > 0) {
             int pageLength = length > PAGE_SIZE - pageOffset ? PAGE_SIZE - pageOffset : (int) length;
@@ -158,7 +154,6 @@ public class BinEdFileDataWrapper implements EditableBinaryData {
         }
     }
 
-    @Nonnull
     @Override
     public InputStream getDataInputStream() {
         try {
@@ -450,7 +445,6 @@ public class BinEdFileDataWrapper implements EditableBinaryData {
         resetCache();
     }
 
-    @Nonnull
     private InputStream getInputStream(long position) throws IOException {
         if (cacheInputStream != null && cachePosition <= position) {
             if (cachePosition < position) {
@@ -474,7 +468,6 @@ public class BinEdFileDataWrapper implements EditableBinaryData {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    @Nonnull
     @Override
     public OutputStream getDataOutputStream() {
         throw new UnsupportedOperationException("Not supported yet.");

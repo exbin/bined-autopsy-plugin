@@ -19,7 +19,7 @@
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
               <Component id="controlToolBar" min="-2" max="-2" attributes="0"/>
-              <EmptySpace min="0" pref="253" max="32767" attributes="0"/>
+              <EmptySpace min="0" pref="285" max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -48,9 +48,7 @@
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
               <Image iconType="3" name="/org/exbin/bined/autopsy/resources/icons/arrow_refresh.png"/>
             </Property>
-            <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="resourceBundle.getString(&quot;refreshButton.toolTipText&quot;)" type="code"/>
-            </Property>
+            <Property name="toolTipText" type="java.lang.String" value="Refresh content"/>
             <Property name="focusable" type="boolean" value="false"/>
             <Property name="horizontalTextPosition" type="int" value="0"/>
             <Property name="verticalTextPosition" type="int" value="3"/>
@@ -65,7 +63,7 @@
               <Image iconType="3" name="/org/exbin/bined/autopsy/resources/icons/bullet_go.png"/>
             </Property>
             <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="resourceBundle.getString(&quot;goToButton.toolTipText&quot;)" type="code"/>
+              <Connection code="componentResourceBundle.getString(&quot;goToPositionAction.shortDescription&quot;)" type="code"/>
             </Property>
             <Property name="focusable" type="boolean" value="false"/>
             <Property name="horizontalTextPosition" type="int" value="0"/>
@@ -77,27 +75,25 @@
         </Component>
         <Component class="javax.swing.JToolBar$Separator" name="separator1">
         </Component>
-        <Component class="javax.swing.JToggleButton" name="showUnprintablesToggleButton">
+        <Component class="javax.swing.JToggleButton" name="showNonprintablesToggleButton">
           <Properties>
-            <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/org/exbin/bined/autopsy/resources/icons/insert-pilcrow.png"/>
+            <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+              <Connection code="new javax.swing.ImageIcon(getClass().getResource(componentResourceBundle.getString(&quot;toggleNonprintablesAction.smallIcon&quot;)))" type="code"/>
             </Property>
-            <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.i18n.form.FormI18nStringEditor">
-              <ResourceString bundle="org/exbin/bined/autopsy/gui/resources/BinEdToolbarPanel.properties" key="showUnprintablesToggleButton.toolTipText" replaceFormat="resourceBundle.getString(&quot;{key}&quot;)"/>
+            <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+              <Connection code="componentResourceBundle.getString(&quot;viewNonprintablesAction.shortDescription&quot;)" type="code"/>
             </Property>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="showUnprintablesToggleButtonActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="showNonprintablesToggleButtonActionPerformed"/>
           </Events>
         </Component>
         <Component class="javax.swing.JToggleButton" name="codeColorizationToggleButton">
           <Properties>
-            <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/org/exbin/bined/autopsy/resources/icons/color_swatch.png"/>
+            <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+              <Connection code="new javax.swing.ImageIcon(getClass().getResource(&quot;/org/exbin/bined/autopsy/resources/icons/color_swatch.png&quot;))" type="code"/>
             </Property>
-            <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="resourceBundle.getString(&quot;codeColorizationToggleButton.toolTipText&quot;)" type="code"/>
-            </Property>
+            <Property name="toolTipText" type="java.lang.String" value="Toggle colorization of the hex codes"/>
             <Property name="focusable" type="boolean" value="false"/>
             <Property name="horizontalTextPosition" type="int" value="0"/>
             <Property name="verticalTextPosition" type="int" value="3"/>
