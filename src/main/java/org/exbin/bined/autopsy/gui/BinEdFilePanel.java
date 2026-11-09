@@ -45,6 +45,8 @@ import org.exbin.jaguif.action.api.ActionModuleApi;
 import org.exbin.jaguif.action.api.DialogParentComponent;
 import org.exbin.jaguif.docking.api.ContextDocking;
 import org.exbin.jaguif.document.api.ContextDocument;
+import org.exbin.jaguif.file.api.FileModuleApi;
+import org.exbin.jaguif.file.api.SaveModifiedResult;
 import org.exbin.bined.jaguif.component.BinedComponentModule;
 import org.exbin.bined.jaguif.bookmarks.BinedBookmarksModule;
 import org.exbin.bined.jaguif.macro.BinedMacroModule;
@@ -217,7 +219,17 @@ public class BinEdFilePanel extends JPanel {
             }
 
             public void refresh() {
-                throw new UnsupportedOperationException();
+                if (fileDocument.isModified()) {
+                    FileModuleApi fileModule = App.getModule(FileModuleApi.class);
+                    SaveModifiedResult result;
+                    result = fileModule.showSaveModified(fileDocument.getComponent());
+                    if (result == SaveModifiedResult.CANCEL) {
+                        return;
+                    } else if (result == SaveModifiedResult.SAVE) {
+                        fileDocument.saveTo(fileDocument.getDocumentSource().get());
+                    }
+                }
+                fileDocument.reloadFile();
             }
 
             public void goToPosition() {
@@ -279,6 +291,10 @@ public class BinEdFilePanel extends JPanel {
         add(componentPanel, BorderLayout.CENTER);
         revalidate();
         repaint();
+    }
+    
+    public BinaryFileDocument getDocument() {
+        return fileDocument;
     }
 
     public BinEdToolbarPanel getToolbarPanel() {

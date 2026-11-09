@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import org.jspecify.annotations.NullMarked;
 import org.exbin.auxiliary.binary_data.BinaryData;
+import org.exbin.auxiliary.binary_data.BinaryDataInputStream;
 import org.exbin.auxiliary.binary_data.array.ByteArrayEditableData;
 import org.sleuthkit.datamodel.Content;
 import org.sleuthkit.datamodel.TskCoreException;
@@ -32,10 +33,10 @@ public class ContentBinaryData implements BinaryData {
 
     public static final int PAGE_SIZE = 2048;
 
-    private final Content dataSource;
+    protected final Content dataSource;
 
-    private final CachePage[] pages = new CachePage[2];
-    private int nextPage = 0;
+    protected final CachePage[] pages = new CachePage[2];
+    protected int nextPage = 0;
 
     public ContentBinaryData(Content dataSource) {
         this.dataSource = dataSource;
@@ -200,7 +201,7 @@ public class ContentBinaryData implements BinaryData {
 
     @Override
     public InputStream getDataInputStream() {
-        throw new UnsupportedOperationException("Data input stream is not supported");
+        return new BinaryDataInputStream(this);
     }
 
     @Override
