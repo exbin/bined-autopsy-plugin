@@ -193,8 +193,8 @@ public class Installer extends ModuleInstall {
     }
 
     private static void initIntegrations() {
-        /* FileOpenAsBinaryAction.registerIntegration();
-        OpenAsBinaryAction.registerIntegration();
+        FileOpenAsBinaryAction.registerIntegration();
+        /* OpenAsBinaryAction.registerIntegration();
         OpenAsBinaryToolsAction.registerIntegration();
         BinEdEditorMulti.registerIntegration();
         BinEdDiffAction.registerIntegration();

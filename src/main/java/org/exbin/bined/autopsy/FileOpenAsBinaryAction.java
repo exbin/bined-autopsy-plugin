@@ -17,6 +17,7 @@ package org.exbin.bined.autopsy;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jspecify.annotations.NullMarked;
@@ -31,13 +32,14 @@ import org.openide.loaders.DataObjectNotFoundException;
 import org.openide.util.NbBundle;
 import org.openide.windows.Mode;
 import org.openide.windows.WindowManager;
+import org.exbin.bined.autopsy.settings.IntegrationOptions;
 
 /**
  * Open file in binary editor action.
  */
 @ActionID(
         category = "Tools",
-        id = "org.exbin.bined.autopsy.FileOpenAsBinaryAction"
+        id = FileOpenAsBinaryAction.ACTION_ID
 )
 @ActionRegistration(
         iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
@@ -47,6 +49,12 @@ import org.openide.windows.WindowManager;
 @NbBundle.Messages("CTL_FileOpenAsBinaryAction=Open File as Binary...")
 @NullMarked
 public final class FileOpenAsBinaryAction implements ActionListener {
+
+    public static final String ACTION_ID = "org.exbin.bined.autopsy.FileOpenAsBinaryAction";
+    public static final String ACTION_STRING = ACTION_ID + ".shadow";
+    public static final String ACTION_PATH = "Menu/Tools";
+    public static final String ACTION_INSTANCE = "Actions/File/org-exbin-bined-netbeans-FileOpenAsBinaryAction.instance";
+    public static final int ACTION_POSITION = 850;
 
     @Override
     public void actionPerformed(ActionEvent event) {
@@ -70,6 +78,62 @@ public final class FileOpenAsBinaryAction implements ActionListener {
             } catch (DataObjectNotFoundException ex) {
                 Logger.getLogger(FileOpenAsBinaryAction.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+    }
+
+    public static void registerIntegration() {
+        Installer.addIntegrationOptionsListener(new Installer.IntegrationOptionsListener() {
+            @Override
+            public void integrationInit(IntegrationOptions integrationOptions) {
+                if (integrationOptions.isRegisterFileMenuOpenAsBinary()) {
+                    install();
+                } else {
+                    uninstall();
+                }
+            }
+
+            @Override
+            public void uninstallIntegration() {
+                uninstall();
+            }
+        });
+    }
+
+    public static void install() {
+        FileObject node = FileUtil.getSystemConfigFile(ACTION_PATH);
+        if (node == null) {
+            return;
+        }
+
+        try {
+            int actionPosition = ACTION_POSITION;
+            final FileObject openAsBinaryAction = node.getFileObject(ACTION_STRING);
+            if (openAsBinaryAction == null) {
+                final FileObject action = node.createData(ACTION_STRING);
+                action.setAttribute(OpenAsBinaryAction.ORIGINAL_FILE_ATTRIBUTE, ACTION_INSTANCE);
+                action.setAttribute(OpenAsBinaryAction.POSITION_ATTRIBUTE, actionPosition);
+            } else {
+                openAsBinaryAction.setAttribute(OpenAsBinaryAction.POSITION_ATTRIBUTE, actionPosition);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(FileOpenAsBinaryAction.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void uninstall() {
+        FileObject node = FileUtil.getSystemConfigFile(ACTION_PATH);
+        if (node == null) {
+            return;
+        }
+
+        try {
+            final FileObject openAsBinaryAction = node.getFileObject(ACTION_STRING);
+            if (openAsBinaryAction != null) {
+                openAsBinaryAction.delete();
+                node.refresh();
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(FileOpenAsBinaryAction.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

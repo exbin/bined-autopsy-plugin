@@ -43,18 +43,19 @@ import org.openide.util.Lookup;
  * Binary editor options panel.
  */
 @NullMarked
-@OptionsPanelController.SubRegistration(
-        location = "Advanced",
-        displayName = "#AdvancedOption_DisplayName_BinEd",
-        keywords = "#AdvancedOption_Keywords_BinEd",
-        keywordsCategory = "Advanced/BinEd"
+@OptionsPanelController.TopLevelRegistration(
+        position = 500,
+        iconBase = "org/exbin/bined/autopsy/resources/images/bined-icon-32x32.png",
+        categoryName = "#Options_DisplayName_BinEd",
+        keywords = "#Options_Keywords_BinEd",
+        keywordsCategory = "BinEd"
 )
-@org.openide.util.NbBundle.Messages({"AdvancedOption_DisplayName_BinEd=BinEd", "AdvancedOption_Keywords_BinEd=BinEd binary/hex editor"})
+@org.openide.util.NbBundle.Messages({"Options_DisplayName_BinEd=BinEd", "Options_Keywords_BinEd=BinEd binary hexadecimal editor"})
 public final class BinEdOptionsPanelController extends OptionsPanelController {
 
-    private SettingsListPanel panel;
-    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
-    private boolean changed;
+    protected SettingsListPanel panel;
+    protected final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+    protected boolean changed;
 
     @Override
     public void update() {

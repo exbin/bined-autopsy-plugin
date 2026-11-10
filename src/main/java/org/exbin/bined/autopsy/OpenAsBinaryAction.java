@@ -30,12 +30,17 @@ import org.openide.windows.WindowManager;
 /**
  * Open file in binary editor action.
  */
-@ActionID(category = "File", id = "org.exbin.bined.OpenAsBinaryAction")
+@ActionID(category = "File", id = OpenAsBinaryAction.ACTION_ID)
 @ActionRegistration(displayName = "#CTL_OpenAsBinaryAction")
 @NbBundle.Messages("CTL_OpenAsBinaryAction=Open as Binary")
 @NullMarked
 public final class OpenAsBinaryAction implements ActionListener {
 
+    public static final String ACTION_ID = "org.exbin.bined.OpenAsBinaryAction";
+
+    public static final String POSITION_ATTRIBUTE = "position";
+    public static final String ORIGINAL_FILE_ATTRIBUTE = "originalFile";
+    
     public OpenAsBinaryAction() {
     }
 
