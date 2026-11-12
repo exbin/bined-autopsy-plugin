@@ -26,22 +26,29 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import org.sleuthkit.autopsy.coreutils.Logger;
+import java.util.logging.Logger;
 import javax.swing.JMenuItem;
 import org.exbin.bined.EditMode;
 import org.exbin.bined.autopsy.BinEdAutopsyDocking;
+import org.exbin.bined.autopsy.Installer;
 import org.exbin.bined.autopsy.gui.BinEdFilePanel;
+import org.exbin.bined.autopsy.settings.IntegrationOptions;
 import org.exbin.bined.jaguif.component.BinEdDataComponent;
 import org.exbin.bined.jaguif.component.gui.BinEdComponentPanel;
 import org.exbin.bined.jaguif.document.BinaryFileDocument;
 import org.exbin.bined.jaguif.document.BinEdFileManager;
 import org.exbin.bined.jaguif.document.BinedDocumentModule;
+import org.exbin.bined.jaguif.search.BinedSearchModule;
 import org.exbin.bined.swing.section.SectCodeArea;
 import org.exbin.bined.swing.section.SectionCodeAreaPainter;
 import org.exbin.jaguif.App;
 import org.exbin.jaguif.context.api.ContextStateManagement;
 import org.exbin.jaguif.docking.api.ContextDocking;
 import org.exbin.jaguif.frame.api.FrameModuleApi;
+import org.exbin.jaguif.options.api.OptionsModuleApi;
+import org.exbin.jaguif.options.settings.api.OptionsSettingsManagement;
+import org.exbin.jaguif.options.settings.api.OptionsSettingsModuleApi;
+import org.exbin.jaguif.options.settings.api.SettingsOptionsProvider;
 import org.exbin.jaguif.language.api.LanguageModuleApi;
 import org.jspecify.annotations.NullMarked;
 import org.openide.nodes.Node;
@@ -202,14 +209,25 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
         }
 
         dataSource = content;
-        BinaryFileDocument document;
+        BinaryFileDocument fileDocument;
         if (!initialized) {
-            document = DataContentViewerBinary.createBinaryFileDocument();
-            filePanel.setDocument(document);
-            
+            fileDocument = DataContentViewerBinary.createBinaryFileDocument();
             BinedDocumentModule binedDocumentModule = App.getModule(BinedDocumentModule.class);
             BinEdFileManager fileManager = binedDocumentModule.getFileManager();
-            fileManager.initDataComponent(document.getDataComponent());
+            BinEdDataComponent dataComponent = fileDocument.getDataComponent();
+            fileManager.initDataComponent(dataComponent);
+            fileManager.initCommandHandler(dataComponent);
+            BinedSearchModule searchModule = App.getModule(BinedSearchModule.class);
+            dataComponent.setSearchController(searchModule.createBinarySearchController(dataComponent));
+            filePanel.setDocument(fileDocument);
+
+            OptionsSettingsModuleApi optionsSettingsModule = App.getModule(OptionsSettingsModuleApi.class);
+            OptionsSettingsManagement settingsManager = optionsSettingsModule.getMainSettingsManager();
+            SettingsOptionsProvider settingsOptionsProvider = settingsManager.getSettingsOptionsProvider();
+            fileDocument.applySettings(settingsOptionsProvider);
+
+            OptionsModuleApi optionsModule = App.getModule(OptionsModuleApi.class);
+            filePanel.loadFromOptions(optionsModule.getAppOptions());
 
             SectCodeArea codeArea = (SectCodeArea) filePanel.getCodeArea();
             codeArea.setEditMode(EditMode.READ_ONLY);
@@ -244,10 +262,10 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
             initialized = true;
         } else {
-            document = filePanel.getDocument();
+            fileDocument = filePanel.getDocument();
         }
 
-        document.loadFrom(new DataContentDocumentSource(dataSource));
+        fileDocument.loadFrom(new DataContentDocumentSource(dataSource));
         ((SectCodeArea) filePanel.getCodeArea()).setCaretPosition(0);
 
         switchMode(Mode.DATA);
@@ -300,6 +318,32 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
 
     public static BinaryFileDocument createBinaryFileDocument() {
         return new BinaryFileDocument(new BinEdDataComponent(new BinEdComponentPanel()));
+    }
+
+    public static void registerIntegration() {
+        Installer.addIntegrationOptionsListener(new Installer.IntegrationOptionsListener() {
+            @Override
+            public void integrationInit(IntegrationOptions integrationOptions) {
+                if (integrationOptions.isRegisterFileMenuOpenAsBinary()) {
+                    install();
+                } else {
+                    uninstall();
+                }
+            }
+
+            @Override
+            public void uninstallIntegration() {
+                uninstall();
+            }
+        });
+    }
+
+    public static void install() {
+        // TODO
+    }
+
+    public static void uninstall() {
+        // TODO
     }
 
     private enum Mode {

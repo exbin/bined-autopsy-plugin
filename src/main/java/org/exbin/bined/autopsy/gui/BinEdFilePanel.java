@@ -45,9 +45,8 @@ import org.exbin.jaguif.action.api.ActionModuleApi;
 import org.exbin.jaguif.action.api.DialogParentComponent;
 import org.exbin.jaguif.docking.api.ContextDocking;
 import org.exbin.jaguif.document.api.ContextDocument;
-import org.exbin.jaguif.file.api.FileModuleApi;
-import org.exbin.jaguif.file.api.SaveModifiedResult;
 import org.exbin.bined.jaguif.component.BinedComponentModule;
+import org.exbin.bined.jaguif.component.action.GoToPositionAction;
 import org.exbin.bined.jaguif.bookmarks.BinedBookmarksModule;
 import org.exbin.bined.jaguif.macro.BinedMacroModule;
 import org.exbin.jaguif.context.ContextStateManager;
@@ -219,21 +218,13 @@ public class BinEdFilePanel extends JPanel {
             }
 
             public void refresh() {
-                if (fileDocument.isModified()) {
-                    FileModuleApi fileModule = App.getModule(FileModuleApi.class);
-                    SaveModifiedResult result;
-                    result = fileModule.showSaveModified(fileDocument.getComponent());
-                    if (result == SaveModifiedResult.CANCEL) {
-                        return;
-                    } else if (result == SaveModifiedResult.SAVE) {
-                        fileDocument.saveTo(fileDocument.getDocumentSource().get());
-                    }
+                if (docking.releaseDocument(fileDocument)) {
+                    fileDocument.reloadFile();
                 }
-                fileDocument.reloadFile();
             }
 
             public void goToPosition() {
-                org.exbin.bined.jaguif.component.action.GoToPositionAction action = new org.exbin.bined.jaguif.component.action.GoToPositionAction();
+                GoToPositionAction action = new GoToPositionAction();
                 action.setCodeArea(codeArea);
                 action.actionPerformed();
             }

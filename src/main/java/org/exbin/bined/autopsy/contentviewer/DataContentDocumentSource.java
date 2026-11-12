@@ -27,7 +27,7 @@ import org.sleuthkit.datamodel.Content;
 @NullMarked
 public class DataContentDocumentSource implements StreamDocumentSource {
 
-    final Content dataObject;
+    protected final Content dataObject;
 
     public DataContentDocumentSource(Content dataObject) {
         this.dataObject = dataObject;

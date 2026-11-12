@@ -38,6 +38,7 @@ public class IntegrationOptions implements SettingsOptions {
     public static final String KEY_REGISTER_BINARY_MULTIVIEW = "registerBinaryMultiview";
     public static final String KEY_REGISTER_DEBUG_VIEW_AS_BINARY = "registerDebugVariablesAsBinary";
     public static final String KEY_REGISTER_BYTE_TO_BYTE_DIFF_TOOL = "registerByteToByteDiffTool";
+    public static final String KEY_REGISTER_DATA_CONTENT_TAB = "registerDataContentTab";
 
     public static final String KEY_REGISTER_EDIT_AS_BINARY_FOR_DB_COLUMN = "registerEditAsBinaryForDbColumn";
 
@@ -180,6 +181,14 @@ public class IntegrationOptions implements SettingsOptions {
         storage.putBoolean(KEY_REGISTER_EDIT_AS_BINARY_FOR_DB_COLUMN, registerEditAsBinaryForDbColumn);
     }
 
+    public boolean isRegisterDataContentTab() {
+        return storage.getBoolean(KEY_REGISTER_DATA_CONTENT_TAB, true);
+    }
+
+    public void setRegisterDataContentTab(boolean dataContentTab) {
+        storage.putBoolean(KEY_REGISTER_DATA_CONTENT_TAB, dataContentTab);
+    }
+
     @Override
     public void copyTo(SettingsOptions options) {
         IntegrationOptions with = (IntegrationOptions) options;
@@ -193,5 +202,6 @@ public class IntegrationOptions implements SettingsOptions {
         with.setRegisterDebugViewAsBinary(isRegisterDebugViewAsBinary());
         with.setRegisterByteToByteDiffTool(isRegisterByteToByteDiffTool());
         with.setRegisterEditAsBinaryForDbColumn(isRegisterEditAsBinaryForDbColumn());
+        with.setRegisterDataContentTab(isRegisterDataContentTab());
     }
 }

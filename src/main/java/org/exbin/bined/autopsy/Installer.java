@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 import org.jspecify.annotations.NullMarked;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import org.exbin.bined.autopsy.contentviewer.DataContentViewerBinary;
 import org.exbin.bined.autopsy.settings.IntegrationOptions;
 import org.exbin.bined.autopsy.settings.gui.IntegrationSettingsPanel;
 import org.exbin.jaguif.App;
@@ -194,6 +195,7 @@ public class Installer extends ModuleInstall {
 
     private static void initIntegrations() {
         FileOpenAsBinaryAction.registerIntegration();
+        DataContentViewerBinary.registerIntegration();
         /* OpenAsBinaryAction.registerIntegration();
         OpenAsBinaryToolsAction.registerIntegration();
         BinEdEditorMulti.registerIntegration();

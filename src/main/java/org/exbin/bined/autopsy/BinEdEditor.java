@@ -15,77 +15,206 @@
  */
 package org.exbin.bined.autopsy;
 
+import java.awt.event.ActionEvent;
+import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JComponent;
+import javax.swing.JPanel;
+import org.exbin.bined.swing.CodeAreaCore;
+import org.exbin.bined.autopsy.main.BinaryUndoSwingHandler;
+import org.exbin.bined.jaguif.document.BinaryFileDocument;
 import org.netbeans.core.spi.multiview.CloseOperationState;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.MultiViewElementCallback;
+import org.netbeans.core.spi.multiview.MultiViewFactory;
+import org.openide.awt.UndoRedo;
+import org.openide.filesystems.FileChangeAdapter;
+import org.openide.filesystems.FileEvent;
+import org.openide.loaders.DataObject;
 import org.openide.text.CloneableEditor;
+import org.openide.text.DataEditorSupport;
+import org.openide.util.HelpCtx;
+import org.openide.util.Lookup;
 import org.openide.windows.TopComponent;
 
 /**
  * BinEd native NetBeans editor.
  */
-@NullMarked
 @MultiViewElement.Registration(
         displayName = "#BinEdEditor.displayName",
         mimeType = BinEdDataObject.MIME_TYPE,
         persistenceType = TopComponent.PERSISTENCE_NEVER,
         iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png",
-        preferredID = BinEdEditor.ID,
+        preferredID = BinEdEditor.ELEMENT_ID,
         position = 1
 )
-public class BinEdEditor extends CloneableEditor implements MultiViewElement {
+@NullMarked
+public class BinEdEditor extends CloneableEditor implements MultiViewElement, HelpCtx.Provider {
 
-    public static final String ID = "bined-editor"; //NOI18N
+    public static final String ELEMENT_ID = "org.exbin.bined.netbeans.BinEdEditor";
+    public static final String ELEMENT_NAME = "org-exbin-bined-netbeans-BinEdEditor";
+    public static final int POSITION_ATTRIBUTE = 900005; // Between "Source" and "History"
+
+    protected BinaryEditorTopComponent editorComponent;
+    protected transient MultiViewElementCallback callback;
+    protected final Lookup lookup;
+
+    public BinEdEditor(Lookup lookup) {
+        this.lookup = lookup;
+        
+        // View could be restored before module is installed
+        Installer.initBinEd();
+    }
 
     @Override
     public JComponent getVisualRepresentation() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (editorComponent == null) {
+            editorComponent = new BinaryEditorTopComponent();
+        }
+        return editorComponent;
     }
 
     @Override
     public JComponent getToolbarRepresentation() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return new JPanel(); // TODO editorFile.getComponent().getToolbarPanel().getToolBar();
     }
 
     @Override
-    public void setMultiViewCallback(MultiViewElementCallback arg0) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void setMultiViewCallback(MultiViewElementCallback callback) {
+        this.callback = callback;
     }
 
     @Override
     public CloseOperationState canCloseElement() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (!editorComponent.getFileDocument().isModified()) {
+            return CloseOperationState.STATE_OK;
+        }
+
+        AbstractAction saveAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveFile();
+            }
+        };
+        DataObject dataObject = lookup.lookup(DataObject.class);
+        saveAction.putValue(Action.LONG_DESCRIPTION, String.format("File %s is modified. Save?", dataObject.getPrimaryFile().getNameExt()));
+        return MultiViewFactory.createUnsafeCloseState("editor", saveAction, MultiViewFactory.NOOP_CLOSE_ACTION);
+    }
+
+    @Override
+    public Action[] getActions() {
+        if (callback != null) {
+            return callback.createDefaultActions();
+        }
+
+        return new Action[0];
+    }
+
+    @Override
+    public Lookup getLookup() {
+        return lookup;
     }
 
     @Override
     public void componentActivated() {
-        super.componentActivated();
+        editorComponent.componentActivated();
+//        FrameModuleApi frameModule = App.getModule(FrameModuleApi.class);
+//        ComponentActivationListener componentActivationListener = frameModule.getFrameHandler().getComponentActivationListener();
+//        fileHandler.componentActivated(componentActivationListener);
     }
 
     @Override
     public void componentDeactivated() {
-        super.componentDeactivated();
+        editorComponent.componentDeactivated();
+//        FrameModuleApi frameModule = App.getModule(FrameModuleApi.class);
+//        ComponentActivationListener componentActivationListener = frameModule.getFrameHandler().getComponentActivationListener();
+//        fileHandler.componentDeactivated(componentActivationListener);
     }
 
     @Override
     public void componentOpened() {
-        super.componentOpened();
+        DataObject dataObject = lookup.lookup(DataObject.class);
+        if (dataObject != null) {
+            if (dataObject instanceof BinEdDataObject) {
+                // TODO: Workaround for using multiview, find proper solution later
+                ((BinEdDataObject) dataObject).setSaveAction(new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        saveFile();
+                    }
+                });
+            }
+
+            openFile(dataObject);
+            dataObject.getPrimaryFile().addFileChangeListener(new FileChangeAdapter() {
+                @Override
+                public void fileChanged(FileEvent fe) {
+                    openFile(dataObject);
+                }
+            });
+
+            if (callback != null) {
+                callback.updateTitle(dataObject.getPrimaryFile().getNameExt());
+            }
+        }
     }
 
     @Override
     public void componentShowing() {
-        super.componentShowing();
     }
 
     @Override
     public void componentHidden() {
-        super.componentHidden();
     }
 
     @Override
     public void componentClosed() {
-        super.componentClosed();
+        editorComponent.getFileDocument().closeData();
+    }
+
+    @Nullable
+    @Override
+    public UndoRedo getUndoRedo() {
+        BinaryUndoSwingHandler undoRedo = (BinaryUndoSwingHandler) (editorComponent.getFileDocument().getUndoHandler().orElse(null));
+        return undoRedo != null ? undoRedo.getUndoManager() : null;
+    }
+
+    @Override
+    public HelpCtx getHelpCtx() {
+        return HelpCtx.DEFAULT_HELP;
+    }
+
+    public void openFile(DataObject dataObject) {
+        BinaryFileDocument fileDocument = editorComponent.getFileDocument();
+        CodeAreaCore codeArea = fileDocument.getCodeArea();
+        boolean editable = dataObject.getPrimaryFile().canWrite();
+//        URI fileUri = dataObject.getPrimaryFile().toURI();
+//        if (fileUri == null) {
+            fileDocument.loadFrom(new FileObjectDocumentSource(dataObject.getPrimaryFile()));
+//        } else {
+//            codeArea.setEditMode(editable ? EditMode.EXPANDING : EditMode.READ_ONLY);
+//            File file = Utilities.toFile(fileUri);
+//            fileHandler.loadFromFile(file.toURI(), null);
+//        }
+        fileDocument.fileSync();
+    }
+
+    public void saveFile() {
+//        try {
+//            getEditorSupport().saveDocument();
+//        } catch (IOException ex) {
+//            Logger.getLogger(BinEdEditor.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        editorComponent.getFileHandler().saveFile();
+        DataObject dataObject = lookup.lookup(DataObject.class);
+        BinaryFileDocument fileDocument = editorComponent.getFileDocument();
+        fileDocument.saveTo(new FileObjectDocumentSource(dataObject.getPrimaryFile()));
+        fileDocument.fileSync();
+    }
+
+    private DataEditorSupport getEditorSupport() {
+        return (DataEditorSupport) cloneableEditorSupport();
     }
 }

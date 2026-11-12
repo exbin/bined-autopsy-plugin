@@ -15,7 +15,9 @@
  */
 package org.exbin.bined.autopsy;
 
+import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
+import javax.swing.Action;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.MIMEResolver;
 import org.openide.loaders.DataObject;
@@ -31,10 +33,15 @@ import org.openide.loaders.MultiFileLoader;
 @DataObject.Registration(displayName = "#BinEdDataObject.displayName", mimeType = BinEdDataObject.MIME_TYPE, iconBase = "org/exbin/bined/autopsy/resources/icons/icon.png")
 public class BinEdDataObject extends MultiDataObject {
 
-  public static final String MIME_TYPE = "application/octet-stream"; //NOI18N
-  public static final String MMD_EXT = "bin"; //NOI18N
+    public static final String MIME_TYPE = "application/octet-stream"; //NOI18N
+    public static final String MMD_EXT = "bin"; //NOI18N
+    protected @Nullable Action saveAction = null;
 
-  public BinEdDataObject(FileObject fo, MultiFileLoader loader) throws DataObjectExistsException {
+    public BinEdDataObject(FileObject fo, MultiFileLoader loader) throws DataObjectExistsException {
         super(fo, loader);
+    }
+
+    public void setSaveAction(Action saveAction) {
+        this.saveAction = saveAction;
     }
 }
