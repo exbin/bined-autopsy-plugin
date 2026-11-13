@@ -219,17 +219,8 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             fileManager.initCommandHandler(dataComponent);
             BinedSearchModule searchModule = App.getModule(BinedSearchModule.class);
             dataComponent.setSearchController(searchModule.createBinarySearchController(dataComponent));
-            filePanel.setDocument(fileDocument);
 
-            OptionsSettingsModuleApi optionsSettingsModule = App.getModule(OptionsSettingsModuleApi.class);
-            OptionsSettingsManagement settingsManager = optionsSettingsModule.getMainSettingsManager();
-            SettingsOptionsProvider settingsOptionsProvider = settingsManager.getSettingsOptionsProvider();
-            fileDocument.applySettings(settingsOptionsProvider);
-
-            OptionsModuleApi optionsModule = App.getModule(OptionsModuleApi.class);
-            filePanel.loadFromOptions(optionsModule.getAppOptions());
-
-            SectCodeArea codeArea = (SectCodeArea) filePanel.getCodeArea();
+            SectCodeArea codeArea = (SectCodeArea) fileDocument.getCodeArea();
             codeArea.setEditMode(EditMode.READ_ONLY);
             SectionCodeAreaPainter oldPainter = (SectionCodeAreaPainter) codeArea.getPainter();
             SectionCodeAreaPainter painter = new SectionCodeAreaPainter(codeArea) {
@@ -259,6 +250,15 @@ public class DataContentViewerBinary extends javax.swing.JPanel implements DataC
             painter.setColorAssessor(oldPainter.getColorAssessor());
             painter.setCharAssessor(oldPainter.getCharAssessor());
             codeArea.setPainter(painter);
+            filePanel.setDocument(fileDocument);
+
+            OptionsSettingsModuleApi optionsSettingsModule = App.getModule(OptionsSettingsModuleApi.class);
+            OptionsSettingsManagement settingsManager = optionsSettingsModule.getMainSettingsManager();
+            SettingsOptionsProvider settingsOptionsProvider = settingsManager.getSettingsOptionsProvider();
+            fileDocument.applySettings(settingsOptionsProvider);
+
+            OptionsModuleApi optionsModule = App.getModule(OptionsModuleApi.class);
+            filePanel.loadFromOptions(optionsModule.getAppOptions());
 
             initialized = true;
         } else {

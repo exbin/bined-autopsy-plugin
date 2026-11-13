@@ -1,4 +1,4 @@
-0.2.1
+0.2.1 (2026-11-13)
 - Added convert data action
 - Added support for bookmarks
 - Added clipboard content tool

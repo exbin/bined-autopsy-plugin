@@ -20,20 +20,23 @@ import org.exbin.bined.swing.section.SectCodeArea;
 import org.exbin.jaguif.App;
 import org.exbin.bined.jaguif.document.BinaryFileDocument;
 import org.exbin.bined.jaguif.component.gui.BinEdComponentPanel;
-import org.exbin.jaguif.language.api.LanguageModuleApi;
-import org.exbin.jaguif.utils.DesktopUtils;
-import org.exbin.jaguif.statusbar.api.StatusBar;
-import org.exbin.jaguif.statusbar.api.StatusBarModuleApi;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JViewport;
+import javax.swing.KeyStroke;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
-import javax.swing.JViewport;
+import java.awt.event.KeyEvent;
 import org.exbin.bined.CodeAreaUtils;
+import org.exbin.bined.EditMode;
+import org.exbin.bined.capability.EditModeCapable;
 import org.exbin.bined.highlight.swing.NonprintablesCodeAreaAssessor;
 import org.exbin.bined.highlight.swing.NonAsciiCodeAreaColorAssessor;
 import org.exbin.bined.autopsy.BinEdAutopsyDocking;
@@ -41,14 +44,22 @@ import org.exbin.bined.autopsy.utils.ActionUtils;
 import org.exbin.bined.swing.CodeAreaSwingUtils;
 import org.exbin.bined.swing.capability.ColorAssessorPainterCapable;
 import org.exbin.jaguif.action.api.ActionConsts;
+import org.exbin.jaguif.action.api.ActionContextChange;
 import org.exbin.jaguif.action.api.ActionModuleApi;
 import org.exbin.jaguif.action.api.DialogParentComponent;
 import org.exbin.jaguif.docking.api.ContextDocking;
 import org.exbin.jaguif.document.api.ContextDocument;
+import org.exbin.jaguif.language.api.LanguageModuleApi;
+import org.exbin.jaguif.utils.DesktopUtils;
+import org.exbin.jaguif.search.SearchModule;
+import org.exbin.jaguif.search.action.FindReplaceActions;
+import org.exbin.jaguif.statusbar.api.StatusBar;
+import org.exbin.jaguif.statusbar.api.StatusBarModuleApi;
 import org.exbin.bined.jaguif.component.BinedComponentModule;
 import org.exbin.bined.jaguif.component.action.GoToPositionAction;
 import org.exbin.bined.jaguif.bookmarks.BinedBookmarksModule;
 import org.exbin.bined.jaguif.macro.BinedMacroModule;
+import org.exbin.bined.operation.command.BinaryDataUndoRedo;
 import org.exbin.jaguif.context.ContextStateManager;
 import org.exbin.jaguif.context.api.ContextStateManagement;
 import org.exbin.jaguif.context.api.ContextChange;
@@ -63,6 +74,7 @@ import org.exbin.jaguif.options.api.OptionsStorage;
 import org.exbin.jaguif.options.settings.action.SettingsAction;
 import org.exbin.jaguif.options.settings.api.OptionsSettingsModuleApi;
 import org.exbin.jaguif.search.api.ContextSearch;
+import org.exbin.jaguif.search.api.SearchModuleApi;
 import org.exbin.jaguif.text.encoding.ContextEncoding;
 
 /**
@@ -70,6 +82,11 @@ import org.exbin.jaguif.text.encoding.ContextEncoding;
  */
 @NullMarked
 public class BinEdFilePanel extends JPanel {
+    
+    public static final String ACTION_FIND = "bined.find";
+    public static final String ACTION_REPLACE = "bined.replace";
+    public static final String ACTION_UNDO = "bined.undo";
+    public static final String ACTION_REDO = "bined.redo";
 
     protected @Nullable BinaryFileDocument fileDocument;
     protected BinEdToolbarPanel toolbarPanel = new BinEdToolbarPanel();
@@ -144,6 +161,7 @@ public class BinEdFilePanel extends JPanel {
 
     public void setDocument(BinaryFileDocument fileDocument) {
         this.fileDocument = fileDocument;
+        fileDocument.getDataComponent().setStatusBar(statusBar);
         statusContextManager.changeActiveState(ContextDocument.class, fileDocument);
         statusContextManager.changeActiveState(ContextComponent.class, fileDocument.getDataComponent());
         statusContextManager.changeActiveState(ContextEncoding.class, fileDocument.getDataComponent());
@@ -169,6 +187,59 @@ public class BinEdFilePanel extends JPanel {
         ActionModuleApi actionModule = App.getModule(ActionModuleApi.class);
         actionModule.initAction(wrapperSettingsAction, optionsResourceBundle, SettingsAction.ACTION_ID);
         wrapperSettingsAction.putValue(ActionConsts.ACTION_DIALOG_MODE, true);
+
+        SearchModule searchModule = (SearchModule) App.getModule(SearchModuleApi.class);
+        FindReplaceActions findReplaceActions = searchModule.getFindReplaceActions();
+        ActionMap actionMap = codeArea.getActionMap();
+        InputMap inputMap = codeArea.getInputMap();
+        actionMap.put(ACTION_FIND, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Action editFindAction = findReplaceActions.createEditFindAction();
+                ContextModuleApi contextModule = App.getModule(ContextModuleApi.class);
+                ContextMonitoringRegistration contextRegistrator = contextModule.createMonitoringRegistrator(statusContextManager);
+                contextRegistrator.registerContextMonitoring((ActionContextChange) editFindAction);
+                contextRegistrator.finish();
+                editFindAction.actionPerformed(e);
+            }
+        });
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, KeyEvent.CTRL_DOWN_MASK, false), ACTION_FIND);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, KeyEvent.META_DOWN_MASK, false), ACTION_FIND);
+        actionMap.put(ACTION_REPLACE, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Action editReplaceAction = findReplaceActions.createEditReplaceAction();
+                ContextModuleApi contextModule = App.getModule(ContextModuleApi.class);
+                ContextMonitoringRegistration contextRegistrator = contextModule.createMonitoringRegistrator(statusContextManager);
+                contextRegistrator.registerContextMonitoring((ActionContextChange) editReplaceAction);
+                contextRegistrator.finish();
+                editReplaceAction.actionPerformed(e);
+            }
+        });
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_H, KeyEvent.CTRL_DOWN_MASK, false), ACTION_REPLACE);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_H, KeyEvent.META_DOWN_MASK, false), ACTION_REPLACE);
+        actionMap.put(ACTION_UNDO, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                BinaryDataUndoRedo undoRedo = fileDocument.getUndoHandler().orElse(null);
+                if (undoRedo != null) {
+                    undoRedo.performUndo();
+                }
+            }
+        });
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.CTRL_DOWN_MASK, false), ACTION_UNDO);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.META_DOWN_MASK, false), ACTION_UNDO);
+        actionMap.put(ACTION_REDO, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                BinaryDataUndoRedo undoRedo = fileDocument.getUndoHandler().orElse(null);
+                if (undoRedo != null) {
+                    undoRedo.performRedo();
+                }
+            }
+        });
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.SHIFT_DOWN_MASK | KeyEvent.CTRL_DOWN_MASK, false), ACTION_REDO);
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.SHIFT_DOWN_MASK | KeyEvent.META_DOWN_MASK, false), ACTION_REDO);
 
         toolbarPanel.setTargetComponent(componentPanel);
         toolbarPanel.setCodeAreaControl(new BinEdToolbarPanel.Control() {
@@ -220,6 +291,10 @@ public class BinEdFilePanel extends JPanel {
             public void refresh() {
                 if (docking.releaseDocument(fileDocument)) {
                     fileDocument.reloadFile();
+                    BinaryDataUndoRedo undoHandler = fileDocument.getUndoHandler().get();
+                    if (undoHandler != null) {
+                        undoHandler.clear();
+                    }
                 }
             }
 
@@ -234,6 +309,19 @@ public class BinEdFilePanel extends JPanel {
                 codeArea.repaint();
             }
         });
+        if (((EditModeCapable) fileDocument.getCodeArea()).getEditMode() != EditMode.READ_ONLY) {
+            BinaryDataUndoRedo undoHandler = fileDocument.getUndoHandler().get();
+            toolbarPanel.setUndoHandler(undoHandler);
+            toolbarPanel.setSaveAction(e -> {
+                fileDocument.saveTo(fileDocument.getDocumentSource().get());
+                docking.setActiveDocument(fileDocument);
+            });
+            undoHandler.addChangeListener(() -> {
+                toolbarPanel.updateUndoState();
+                boolean modified = undoHandler.getSyncPosition() != undoHandler.getCommandPosition();
+                toolbarPanel.updateModified(modified);
+            });
+        }
 
         BinedComponentModule binedComponentModule = App.getModule(BinedComponentModule.class);
         codeArea.setComponentPopupMenu(new JPopupMenu() {

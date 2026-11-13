@@ -31,7 +31,7 @@ ext.scriptFile = { String fileName ->
     return new File(new File(rootDir, 'gradle'), fileName)
 }
 
-version = '0.2.1-SNAPSHOT'
+version = '0.2.1'
 group = 'org.exbin.bined.autopsy'
 
 sourceCompatibility = '1.8'

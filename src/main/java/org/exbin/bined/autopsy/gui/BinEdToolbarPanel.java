@@ -17,6 +17,8 @@ package org.exbin.bined.autopsy.gui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import javax.swing.AbstractAction;
@@ -233,8 +235,8 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
             try {
                 undoRedo.performUndo();
                 updateUndoState();
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ex) {
+                Logger.getLogger(BinEdToolbarPanel.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
 
@@ -245,8 +247,8 @@ public class BinEdToolbarPanel extends javax.swing.JPanel {
             try {
                 undoRedo.performRedo();
                 updateUndoState();
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ex) {
+                Logger.getLogger(BinEdToolbarPanel.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
         updateUndoState();
